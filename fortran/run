@@ -1,0 +1,2 @@
+f2py -m fortran_neigh -h fortran_neigh.pyf mod.f90 init_dealloc.f90 get_neigh.f90  --overwrite-signature
+f2py --f90flags="-fopenmp" --opt="-O5" -m EANN -lmkl_rt -lgomp -c fortran_neigh.pyf  mod.f90 init_dealloc.f90 get_neigh.f90

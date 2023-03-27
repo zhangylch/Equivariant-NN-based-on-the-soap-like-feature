@@ -1,4 +1,4 @@
-subroutine EANN_out(coor,atomindex,shifts)
+subroutine get_neigh(coor,atomindex,shifts)
      use initmod
      implicit none
      integer(kind=intype) :: numatom,num,maxneigh

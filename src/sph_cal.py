@@ -37,12 +37,11 @@ class SPH_CAL():
         return self.compute_sph(cart)
 
     @partial(jit,static_augnums=0)
-    def compute_sph(self,incart)
+    def compute_sph(self,incart,distances)
         '''
         cart: Cartesian coordinates with the dimension (batch,n,3) n is the max number of neigbbors and the rest complemented with 0. Here, we do not do the lod of tensor to keep the dimension of batch for the convenient calculation of sample to sample gradients.
         '''
         cart=incart.transpose(2,1,0)
-        distance=jnp.linalg.norm(cart,axis=0)
         d_sq=distance*distance
         temp=np.sqrt(0.5/np.pi)
         sph=jnp.empty((self.max_l*self.max_l,incart.shape[1],incart.shape[0]))

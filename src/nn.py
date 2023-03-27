@@ -1,15 +1,15 @@
 import flax
 from flax import linen as nn
 from flax.linen.activation import silu
+from typing import Sequence
 
-class NN(nn.Module):
-    def setup(self,nl,outputneuron):
-        MLP=[]
-        for i in range(nl):
-            MLP.append(nn.Dense(i))
-            MLP.append(silu)
-        MLP.append(nn.Dense(outputneuron))
-        self.MLP=nn.Sequential(MLP)
+
+class MLP(nn.Module):
+    nl: Sequence[int]=None    # The nl is the structure of the nn but do not include the input layer
+    def setup(self):
+        self.nn=[nn.Dense(neuron) for neuron in self.nl]
 
     def __call__(self,x):
-        return self.MLP(x)
+        for layer in self.nl[0:-1]:
+            x=silu(layer(x))
+        return self.nl[-1](x)
