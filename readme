@@ -1,1 +1,1 @@
-This repo aims to implement the spherical harmonic expansion based on the jax.
+This repo aims to implement equivariant MPNN using the spherical harmonic expansion based on the jax.
