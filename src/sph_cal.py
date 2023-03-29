@@ -33,16 +33,15 @@ class SPH_CAL():
                 self.coeff_b[self.pt[l,0:l]]=-np.sqrt((ls[l-1]-ls[0:l])/(4*(ls[l-1]-1)))
         self.sqrt2_rev=np.sqrt(1/2.0)
 
-    def __call__(self,cart):
-        return self.compute_sph(cart)
+    def __call__(self,cart,distances):
+        return self.compute_sph(cart,distances)
 
     @partial(jit,static_augnums=0)
-    def compute_sph(self,incart,distances)
+    def compute_sph(self,cart,distances)
         '''
-        cart: Cartesian coordinates with the dimension (batch,n,3) n is the max number of neigbbors and the rest complemented with 0. Here, we do not do the lod of tensor to keep the dimension of batch for the convenient calculation of sample to sample gradients.
+        cart: Cartesian coordinates with the dimension (3,n,batch) n is the max number of neigbbors and the rest complemented with 0. Here, we do not do the lod of tensor to keep the dimension of batch for the convenient calculation of sample to sample gradients.
         '''
-        cart=incart.transpose(2,1,0)
-        d_sq=distance*distance
+        d_sq=distances*distances
         temp=np.sqrt(0.5/np.pi)
         sph=jnp.empty((self.max_l*self.max_l,incart.shape[1],incart.shape[0]))
         sph.at[0].set(temp)

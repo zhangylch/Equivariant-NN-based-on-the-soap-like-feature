@@ -5,11 +5,18 @@ import jax.numpy as jnp
 def radial_func(distances,alpha,center):
     '''
     Here, we employ the gaussian function with optimizable parameters as the radial function
-    distances is the array to store the distances between the center atoms with its neighbors with the dimension of (n,batchsize) float/double
+    distances is the array to store the distances between the center atoms with its neighbors with the dimension of (numatom*neigh,batchsize) float/double
+    alpha is an optimizable parameters with its dimension of (nwave)
+    center is an optimizable parameters with its dimension of (nwave)
     '''
-    gaussian=jnp.exp(alpha*(distances[None,:,:]-center[:,None,None]))
+    shift_distances=distances[None,:,:]-center[:,None,None]
+    gaussian=jnp.exp(alpha*(shift_distances*shift_distances))
     return gaussian
 
+@jit
 def cutoff_func(distances,cutoff)
-    a=(jnp.cos(distances/cutoff*jnp.pi)+1)/2.0
-    return a*a*a  # here to use the a^3 to keep the smooth of hessian functtion
+    '''
+
+    '''
+    tmp=(jnp.cos(distances/cutoff*jnp.pi)+1.0)/2.0
+    return tmp*tmp*tmp  # here to use the a^3 to keep the smooth of hessian functtion
