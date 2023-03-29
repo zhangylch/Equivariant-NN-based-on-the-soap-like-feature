@@ -5,9 +5,10 @@ import jax.random as jrm
 from flax import linen as nn
 
 class MPNN():
-    def __init__(self,oc_loop,numatom,params_list,radial_func,cutoff_func,SPH_CAL,emb_nn,invariant):
+    def __init__(self,oc_loop,numatom,nn_list,params_list,radial_func,cutoff_func,SPH_CAL,emb_nn,invariant):
         self.numatom=numatom
         self.oc_loop=oc_loop
+        self.nn_list=nn_list
         self.params_list=params_list
         self.radial_func=radial_func
         self.cutoff_func=cutoff_func
@@ -30,8 +31,9 @@ class MPNN():
         incart=cart.transpose(2,1,0)
         sph=sph_cal(incart,distances)
         MP_sph=jnp.zeros(sph.shape[0],self.numatom,sph.shape[2])
-        invariant_quantity=self.emb_nn(params[-3],species)
+        invariant_quantity=self.emb_nn(params[-3],species.reshape(-1,1))
         for ioc_loop in range(oc_loop+1):
             params=self,params_list[ioc_loop]
-            invariant_quantity,MP_sph=self.invariant(sph,ext_sph,radial,index_l,atomindex[1],atomidex[0],invariant_quantity,params,model)
+            model=self.nn_list[ioc_loop]
+            invariant_quantity,MP_sph=self.invariant(sph,MP_sph,radial,index_l,atomindex[1],atomidex[0],invariant_quantity,params,model)
         return invariant_quantity
