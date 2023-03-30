@@ -1,11 +1,11 @@
 module initmod
      implicit none
      integer(kind=4),parameter :: intype=4,typenum=8
-     real(kind=typenum),parameter :: dier=0.3 ! "dier" is the side length of the box used in cell-linked list algorithm. This value must be small enough to ensure each box only have one atom at most.
+     real(kind=typenum),parameter :: dier=0.25 ! "dier" is the side length of the box used in cell-linked list algorithm. This value must be small enough to ensure each box only have one atom at most.
      integer(kind=intype) :: interaction,numatom,length,max_neigh
      integer(kind=intype) :: nimage(3),rangebox(3)
      integer(kind=intype),allocatable :: index_numrs(:,:,:,:)
-     real(kind=typenum) :: rc,rcsq,dier
+     real(kind=typenum) :: rc,rcsq
      real(kind=typenum) :: matrix(3,3),inv_matrix(3,3),rangecoor(3)
      real(kind=typenum),allocatable :: imageatom(:,:,:),shiftvalue(:,:)
 end module
