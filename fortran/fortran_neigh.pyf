@@ -1,0 +1,43 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module fortran_neigh ! in 
+    interface  ! in :fortran_neigh
+        module initmod ! in :fortran_neigh:init_dealloc.f90
+            integer(kind=4), parameter,optional :: intype=4
+            integer(kind=4), parameter,optional :: typenum=8
+            real(kind=8), parameter,optional :: dier=0.25
+            integer(kind=4) :: interaction
+            integer(kind=4) :: numatom
+            integer(kind=4) :: length
+            integer(kind=4) :: maxneigh
+            integer(kind=4) dimension(3) :: nimage
+            integer(kind=4) dimension(3) :: rangebox
+            real(kind=8) :: rc
+            real(kind=8) :: rcsq
+            real(kind=8) dimension(3,3) :: matrix
+            real(kind=8) dimension(3,3) :: inv_matrix
+            real(kind=8) dimension(3) :: rangecoor
+            real(kind=8), allocatable,dimension(:,:) :: shiftvalue
+        end module initmod
+        subroutine init_neigh(in_numatom,in_rc,cell,in_maxneigh) ! in :fortran_neigh:init_dealloc.f90
+            use initmod
+            integer(kind=4) :: in_numatom
+            real(kind=8) intent(in) :: in_rc
+            real(kind=8) dimension(3,3),intent(in) :: cell
+            integer(kind=4) :: in_maxneigh
+        end subroutine init_neigh
+        subroutine deallocate_all ! in :fortran_neigh:init_dealloc.f90
+            use initmod
+        end subroutine deallocate_all
+        subroutine get_neigh(coor,atomindex,shifts) ! in :fortran_neigh:get_neigh.f90
+            use initmod
+            real(kind=8) dimension(3,numatom),intent(in),check(0==0) :: coor
+            real(kind=8) dimension(2,(maxneigh)),intent(out),check(0==0) :: atomindex
+            real(kind=8) dimension(3,(maxneigh)),intent(out),check(0==0) :: shifts
+        end subroutine get_neigh
+    end interface 
+end python module fortran_neigh
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
