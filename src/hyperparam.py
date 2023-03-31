@@ -21,7 +21,7 @@ key=jrm.PRNGKey(0)
 for ioc_loop in range(oc_loop):
     nn_list.append(MLP(oc_nl))
 nn_list.append(MLP(nl))
-init_key=jrm(key,num=oc_loop+3)  # The 3 more key is for the final nn, embedded nn and the seed to generate next key.
+init_key=jrm.split(key,num=oc_loop+3)  # The 3 more key is for the final nn, embedded nn and the seed to generate next key.
 random_x=jnp.ones(norbit)
 # initialize the model 
 params_list=[]
