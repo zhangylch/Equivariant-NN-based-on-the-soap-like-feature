@@ -38,58 +38,94 @@ class SPH_CAL():
 
         self.sqrt2_rev=np.sqrt(1/2.0)
         self.sqrt2pi_rev=np.sqrt(0.5/np.pi)
+        self.hc_factor1=np.sqrt(15.0/4.0/np.pi)
+        self.hc_factor2=np.sqrt(5.0/16.0/np.pi)
+        self.hc_factor3=np.sqrt(15.0/16.0/np.pi)
 
 
-    #@partial(jit,static_argnums=0)
+    @partial(jit,static_argnums=0)
     def compute_sph(self,cart):
         '''
         cart: Cartesian coordinates with the dimension (3,n,batch) n is the max number of neigbbors and the rest complemented with 0. Here, we do not do the lod of tensor to keep the dimension of batch for the convenient calculation of sample to sample gradients.
         '''
         distances=jnp.linalg.norm(cart,axis=0)  # to convert to the dimension (n,batchsize)
         d_sq=distances*distances
-        sph=jnp.empty((self.max_l*self.max_l,cart.shape[1],cart.shape[2]))
+        sph_shape=(self.max_l*self.max_l,)+cart.shape[1:]
+        sph=jnp.empty(sph_shape)
         sph=sph.at[0].set(self.sqrt2pi_rev*self.sqrt2_rev)
         sph=sph.at[1].set(self.prefactor1[1]*self.sqrt2pi_rev*cart[1])
         sph=sph.at[2].set(self.prefactor2[0]*self.sqrt2_rev*self.sqrt2pi_rev*cart[2])
         sph=sph.at[3].set(self.prefactor1[1]*self.sqrt2pi_rev*cart[0])
-        for l in range(2,self.max_l):
-            sph=sph.at[self.yr[l,0]].set(self.coeff_a[self.pt[l,0]]*(cart[2]*sph[self.yr[l-1,0]]+self.coeff_b[self.pt[l,0]]*d_sq*sph[self.yr[l-2,0]]))
-            for m in range(1,l-1):
-                sph=sph.at[self.yr[l,m]].set(self.coeff_a[self.pt[l,m]]*(cart[2]*sph[self.yr[l-1,m]]+self.coeff_b[self.pt[l,m]]*d_sq*sph[self.yr[l-2,m]]))
-                sph=sph.at[self.yr_rev[l,m]].set(self.coeff_a[self.pt[l,m]]*(cart[2]*sph[self.yr_rev[l-1,m]]+self.coeff_b[self.pt[l,m]]*d_sq*sph[self.yr_rev[l-2,m]]))
-            sph=sph.at[self.yr[l,l-1]].set(self.prefactor2[l-1]*cart[2]*sph[self.yr[l-1,l-1]])
-            sph=sph.at[self.yr_rev[l,l-1]].set(self.prefactor2[l-1]*cart[2]*sph[self.yr_rev[l-1,l-1]])
-            sph=sph.at[self.yr[l,l]].set(self.prefactor1[l]*(cart[0]*sph[self.yr[l-1,l-1]]-cart[1]*sph[self.yr_rev[l-1,l-1]]))
-            sph=sph.at[self.yr_rev[l,l]].set(self.prefactor1[l]*(cart[0]*sph[self.yr_rev[l-1,l-1]]+cart[1]*sph[self.yr[l-1,l-1]]))
+        if self.max_l>2.5:
+            sph=sph.at[4].set(self.hc_factor1*cart[0]*cart[1])
+            sph=sph.at[5].set(-self.hc_factor1*cart[1]*cart[2])
+            sph=sph.at[6].set(self.hc_factor2*(3.0*cart[2]*cart[2]-d_sq))
+            sph=sph.at[7].set(-self.hc_factor1*cart[0]*cart[2])
+            sph=sph.at[8].set(self.hc_factor3*(cart[0]*cart[0]-cart[1]*cart[1]))
+            for l in range(3,self.max_l):
+                sph=sph.at[self.yr[l,0:l-1]].set(jnp.einsum("i,i...->i...",self.coeff_a[self.pt[l,0:l-1]],(cart[2]*sph[self.yr[l-1,0:l-1]]+jnp.einsum("i,...,i... ->i...",self.coeff_b[self.pt[l,0:l-1]],d_sq,sph[self.yr[l-2,0:l-1]]))))
+                sph=sph.at[self.yr_rev[l,1:l-1]].set(jnp.einsum("i,i... ->i...",self.coeff_a[self.pt[l,1:l-1]],(cart[2]*sph[self.yr_rev[l-1,1:l-1]]+jnp.einsum("i,...,i... ->i...",self.coeff_b[self.pt[l,1:l-1]],d_sq,sph[self.yr_rev[l-2,1:l-1]]))))
+                sph=sph.at[self.yr[l,l-1]].set(self.prefactor2[l-1]*cart[2]*sph[self.yr[l-1,l-1]])
+                sph=sph.at[self.yr_rev[l,l-1]].set(self.prefactor2[l-1]*cart[2]*sph[self.yr_rev[l-1,l-1]])
+                sph=sph.at[self.yr[l,l]].set(self.prefactor1[l]*(cart[0]*sph[self.yr[l-1,l-1]]-cart[1]*sph[self.yr_rev[l-1,l-1]]))
+                sph=sph.at[self.yr_rev[l,l]].set(self.prefactor1[l]*(cart[0]*sph[self.yr_rev[l-1,l-1]]+cart[1]*sph[self.yr[l-1,l-1]]))
         return sph
 
 '''
 # here is an example to use the sph calculation
-
 import timeit 
-from jax.scipy.special import sph_harm
-max_l=4
+max_l=8
 key=jrm.PRNGKey(0)
 init_key=jrm.split(key)
-cart=jrm.uniform(key,(3,1,1))
+cart=jrm.uniform(key,(3,10000))
 sph=SPH_CAL(max_l=max_l)
-starttime = timeit.default_timer()
-print("The start time is :",starttime)
+
+@jit
+def test_forward(cart):
+    for i in range(1000):
+        tmp=sph.compute_sph(cart)       
+        cart=cart+0.1
+    return tmp
+#print(jax.make_jaxpr(sph.compute_sph)(cart))
 sph.compute_sph(cart)
-print("The time difference is :", timeit.default_timer() - starttime)
-#cart=jrm.uniform(key,(3,1000,10000))
-print("hello")
+jax.lax.stop_gradient(cart)
+tmp=test_forward(cart)
+cart=cart+0.1
 starttime = timeit.default_timer()
 print("The start time is :",starttime)
-tmp1=sph.compute_sph(cart)
+test_forward(cart)
 print("The time difference is :", timeit.default_timer() - starttime)
-print(tmp1)
-print(cart[:,0,0])
-r=jnp.linalg.norm(cart,axis=0)
-r1=jnp.linalg.norm(cart[0:2],axis=0)
-ceta=jnp.arccos(cart[2]/r)
-phi=jnp.arccos(cart[0]/r1)
+print(tmp.shape)
+
+
+forward=jax.jit(jax.vmap(test_forward,in_axes=(1),out_axes=(1)))
+forward(cart)
+starttime = timeit.default_timer()
 print("The start time is :",starttime)
-tmp=sph_harm(m=jnp.array([1]), n=jnp.array([1]), theta=ceta[0],phi=phi[0])
+tmp=forward(cart)
 print("The time difference is :", timeit.default_timer() - starttime)
+print(tmp.shape)
+
+#jac=jax.jit(jax.vmap(jax.jacfwd(test_forward),in_axes=(1),out_axes=(1)))
+#grad=jac(cart)
+#starttime = timeit.default_timer()
+#print("The start time is :",starttime)
+#grad=jac(cart)
+#print("The time difference is :", timeit.default_timer() - starttime)
+
+#hess=jax.jit(jax.vmap(jax.hessian(sph.compute_sph),in_axes=(1),out_axes=(1)))
+#tmp=hess(cart)
+#starttime = timeit.default_timer()
+#print("The start time is :",starttime)
+#tmp=hess(cart)
+#print("The time difference is :", timeit.default_timer() - starttime)
+#
+## calculate hessian by jac(jac)
+#hess=jax.jit(jax.vmap(jax.jacfwd(jax.jacfwd(sph.compute_sph)),in_axes=(1),out_axes=(1)))
+#tmp=hess(cart)
+#starttime = timeit.default_timer()
+#print("The start time is :",starttime)
+#tmp=hess(cart)
+#print("The time difference is :", timeit.default_timer() - starttime)
+#print(tmp.shape)
 '''
