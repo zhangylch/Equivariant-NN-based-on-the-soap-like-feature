@@ -1,1 +1,2 @@
 This repo aims to implement equivariant MPNN using the spherical harmonic expansion based on the jax.
+In the dev branch, we exclude the dimension of batchsize and introduce the batchsize dimension by vmap.
