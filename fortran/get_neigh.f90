@@ -1,20 +1,20 @@
-subroutine get_neigh(coor,atomindex,shifts)
+subroutine get_neigh(cart,atomindex,shifts,numatom,maxneigh)
      use initmod
      implicit none
+     integer(kind=intype),intent(in) :: numatom,maxneigh
+     integer(kind=intype),intent(out) :: atomindex(2,maxneigh)
      integer(kind=intype) :: num,iatom,ninit,scutnum,i,j,l,i1,i2,i3
      integer(kind=intype) :: sca(3),boundary(2,3)
      integer(kind=intype) :: index_numrs(2,int(numatom*dier_3/volume*expand_coeff),rangebox(1),rangebox(2),rangebox(3))
      integer(kind=intype) :: index_rs(rangebox(1),rangebox(2),rangebox(3))
+     real(kind=typenum),intent(in) :: cart(3,numatom)
+     real(kind=typenum),intent(out) :: shifts(3,maxneigh)
      real(kind=typenum) :: tmp
-     real(kind=typenum) :: oriminv(3),tmp1(3)
-     real(kind=typenum) :: coor(3,numatom),fcoor(3,numatom),imageatom(3,numatom,length)
-     real(kind=typenum) :: shifts(3,maxneigh),atomindex(2,maxneigh)
+     real(kind=typenum) :: coor(3,numatom),oriminv(3),tmp1(3)
+     real(kind=typenum) :: fcoor(3,numatom),imageatom(3,numatom,length)
      ! to calculate the number of atoms in each box with its sidelength as dier
      ! nbox=dier^3/matrix(1,1)*matrix(2,2)*matrix(3,3)*numatom
-!f2py integer(kind=intype),intent(in) :: numatom
-!f2py real(kind=typenum),intent(in),check(0==0) :: coor
-!f2py integer(kind=intype),intent(out),check(0==0) :: atomindex
-!f2py real(kind=typenum),intent(out),check(0==0) :: shifts
+       coor=cart
        fcoor=matmul(inv_matrix,coor)
 ! move all atoms to an cell which is convenient for the expansion of the image
        oriminv=coor(:,1)

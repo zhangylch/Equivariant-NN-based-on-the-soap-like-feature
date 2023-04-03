@@ -1,30 +1,27 @@
 module initmod
      implicit none
      integer(kind=4),parameter :: intype=4,typenum=8
-     real(kind=typenum),parameter :: dier=0.25,dier_3=dier*dier*dier ! "dier" is the side length of the box used in cell-linked 
      real(kind=typenum),parameter :: expand_coeff=1.2
-     integer(kind=intype) :: interaction,numatom,length,maxneigh
+     integer(kind=intype) :: interaction,length
      integer(kind=intype) :: nimage(3),rangebox(3)
      real(kind=typenum) :: rc,rcsq,volume
      real(kind=typenum) :: matrix(3,3),inv_matrix(3,3),rangecoor(3)
      real(kind=typenum),allocatable :: shiftvalue(:,:)
+     real(kind=typenum) :: dier,dier_3 ! "dier" is the side length of the box used in cell-linked 
 end module
 
-subroutine init_neigh(in_numatom,in_rc,cell,in_maxneigh)
+subroutine init_neigh(in_rc,in_dier,cell)
      use initmod
      implicit none
-     integer(kind=intype) :: in_numatom,in_maxneigh
      integer(kind=intype) :: i,j,k,l
-     real(kind=typenum) :: in_rc,in_dier
+     real(kind=typenum),intent(in) :: in_rc,in_dier,cell(3,3)
      real(kind=typenum) :: s1,s2,rlen1,rlen2
-     real(kind=typenum) :: cell(3,3)
      real(kind=typenum) :: tmp(3),maxd(3),mind(3),vec1(3,3),vec2(3,3)
-!f2py real(kind=intype),intent(in) :: max_neigh
 !f2py real(kind=typenum),intent(in) :: in_rc,in_dier,cell
-       numatom=in_numatom
-       maxneigh=in_maxneigh
        rc=in_rc
        rcsq=rc*rc
+       dier=in_dier
+       dier_3=dier*dier*dier
        interaction=ceiling(rc/dier)
        matrix=cell
        call inverse_matrix(matrix,inv_matrix)
