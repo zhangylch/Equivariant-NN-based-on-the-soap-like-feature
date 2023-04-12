@@ -1,0 +1,18 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module test ! in 
+    interface  ! in :test
+        subroutine push(positions,velocities,a,dt,m,n) ! in :test:test.f90
+            real(kind=8) dimension(3,n),intent(in) :: positions
+            real(kind=8) dimension(3,n),intent(in),depend(n) :: velocities
+            real(kind=8) dimension(3,m),intent(out),depend(m) :: a
+            real(kind=8) intent(in) :: dt
+            integer intent(in) :: m
+            integer, optional,intent(in),check(shape(positions,1)==n),depend(positions) :: n=shape(positions,1)
+        end subroutine push
+    end interface 
+end python module test
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/

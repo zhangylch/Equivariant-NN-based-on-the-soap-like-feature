@@ -1,12 +1,14 @@
 !    -*- f90 -*-
 ! Note: the context of this file is case sensitive.
 
-python module fortran_neigh ! in 
-    interface  ! in :fortran_neigh
-        module initmod ! in :fortran_neigh:init_dealloc.f90
+python module getneigh ! in 
+    interface  ! in :getneigh
+        module constant ! in :getneigh:init_dealloc.f90
             integer(kind=4), parameter,optional :: intype=4
             integer(kind=4), parameter,optional :: typenum=8
-            real(kind=8), parameter,optional :: expand_coeff=1.2
+        end module constant
+        module initmod ! in :getneigh:init_dealloc.f90
+            use constant
             integer(kind=4) :: interaction
             integer(kind=4) :: length
             integer(kind=4) dimension(3) :: nimage
@@ -21,25 +23,32 @@ python module fortran_neigh ! in
             real(kind=8) :: dier_3
             real(kind=8), allocatable,dimension(:,:) :: shiftvalue
         end module initmod
-        subroutine init_neigh(in_rc,in_dier,cell) ! in :fortran_neigh:init_dealloc.f90
+        subroutine init_neigh(in_rc,in_dier,cell) ! in :getneigh:init_dealloc.f90
+            use constant
             use initmod
             real(kind=8) intent(in) :: in_rc
             real(kind=8) intent(in) :: in_dier
             real(kind=8) dimension(3,3),intent(in) :: cell
         end subroutine init_neigh
-        subroutine deallocate_all ! in :fortran_neigh:init_dealloc.f90
+        subroutine deallocate_all ! in :getneigh:init_dealloc.f90
             use initmod
         end subroutine deallocate_all
-        subroutine get_neigh(cart,atomindex,shifts,numatom,maxneigh) ! in :fortran_neigh:get_neigh.f90
+        subroutine get_neigh(cart,atomindex,shifts,maxneigh,numatom) ! in :getneigh:get_neigh.f90
+            use constant
             use initmod
             real(kind=8) dimension(3,numatom),intent(in) :: cart
             integer(kind=4) dimension(2,maxneigh),intent(out),depend(maxneigh) :: atomindex
             real(kind=8) dimension(3,maxneigh),intent(out),depend(maxneigh) :: shifts
-            integer(kind=4), optional,intent(in),check(shape(cart, 1) == numatom),depend(cart) :: numatom=shape(cart, 1)
             integer(kind=4) intent(in) :: maxneigh
+            integer(kind=4), optional,intent(in),check(shape(cart, 1) == numatom),depend(cart) :: numatom=shape(cart, 1)
         end subroutine get_neigh
+        subroutine inverse_matrix(matrix,inv_matrix) ! in :getneigh:inverse_matrix.f90
+            use constant
+            real(kind=8) dimension(3,3) :: matrix
+            real(kind=8) dimension(3,3) :: inv_matrix
+        end subroutine inverse_matrix
     end interface 
-end python module fortran_neigh
+end python module getneigh
 
 ! This file was auto-generated with f2py (version:1.24.2).
 ! See:

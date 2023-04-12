@@ -1,2 +1,2 @@
-f2py -m fortran_neigh -h fortran_neigh.pyf init_dealloc.f90 get_neigh.f90  --overwrite-signature
-f2py --f90flags="-fopenmp" --opt="-O5" -m fortran_neigh -I"/software/intel/compilers_and_libraries_2019/linux/mkl/include" -lgomp -c fortran_neigh.pyf  init_dealloc.f90 get_neigh.f90
+python3 -m numpy.f2py -m getneigh -h getneigh.pyf init_dealloc.f90 get_neigh.f90 inverse_matrix.f90 --overwrite-signature
+python3 -m numpy.f2py --f90flags="-fopenmp" --opt="-O5" -m getneigh -lmkl_rt -c getneigh.pyf init_dealloc.f90 get_neigh.f90 inverse_matrix.f90

@@ -1,17 +1,18 @@
-subroutine get_neigh(cart,atomindex,shifts,numatom,maxneigh)
+subroutine get_neigh(cart,atomindex,shifts,maxneigh,numatom)
+     use constant
      use initmod
      implicit none
      integer(kind=intype),intent(in) :: numatom,maxneigh
-     integer(kind=intype),intent(out) :: atomindex(2*maxneigh)
+     real(kind=typenum),intent(in) :: cart(3,numatom)
+     integer(kind=intype),intent(out) :: atomindex(2,maxneigh)
+     real(kind=typenum),intent(out) :: shifts(3,maxneigh)
      integer(kind=intype) :: num,iatom,ninit,scutnum,i,j,l,i1,i2,i3
      integer(kind=intype) :: sca(3),boundary(2,3)
-     integer(kind=intype) :: index_numrs(2,int(numatom*dier_3/volume*expand_coeff),rangebox(1),rangebox(2),rangebox(3))
+     integer(kind=intype) :: index_numrs(2,numatom,rangebox(1),rangebox(2),rangebox(3))
      integer(kind=intype) :: index_rs(rangebox(1),rangebox(2),rangebox(3))
-     real(kind=typenum),intent(in) :: cart(3,numatom)
-     real(kind=typenum),intent(out) :: shifts(3*maxneigh)
      real(kind=typenum) :: tmp
-     real(kind=typenum) :: coor(3,numatom),oriminv(3),tmp1(3)
-     real(kind=typenum) :: fcoor(3,numatom),imageatom(3,numatom,length)
+     real(kind=typenum) :: oriminv(3),tmp1(3)
+     real(kind=typenum) :: coor(3,numatom),fcoor(3,numatom),imageatom(3,numatom,length)
      ! to calculate the number of atoms in each box with its sidelength as dier
      ! nbox=dier^3/matrix(1,1)*matrix(2,2)*matrix(3,3)*numatom
        coor=cart
@@ -19,8 +20,10 @@ subroutine get_neigh(cart,atomindex,shifts,numatom,maxneigh)
 ! move all atoms to an cell which is convenient for the expansion of the image
        oriminv=coor(:,1)
        do iatom=2,numatom
-         sca=nint(fcoor(:,iatom)-fcoor(:,1))
-         coor(:,iatom)=coor(:,iatom)-sca(1)*matrix(:,1)-sca(2)*matrix(:,2)-sca(3)*matrix(:,3)
+         ! we comment out these codes to keep the original coor and these require
+         ! that the coordina are in the same cell.
+         !sca=nint(fcoor(:,iatom)-fcoor(:,1))
+         !coor(:,iatom)=coor(:,iatom)-sca(1)*matrix(:,1)-sca(2)*matrix(:,2)-sca(3)*matrix(:,3)
          do j=1,3
            if(coor(j,iatom)<oriminv(j)) oriminv(j)=coor(j,iatom)
          end do
@@ -51,7 +54,6 @@ subroutine get_neigh(cart,atomindex,shifts,numatom,maxneigh)
        ninit=(length+1)/2
        do iatom = 1, numatom
          sca=ceiling(coor(:,iatom)/dier)
-         imageatom(:,iatom,ninit)=100.0
          ninit=(length+1)/2
          imageatom(:,iatom,ninit)=100d0
          do i=1,3
@@ -67,16 +69,16 @@ subroutine get_neigh(cart,atomindex,shifts,numatom,maxneigh)
                  tmp1=imageatom(:,j,l)-coor(:,iatom)
                  tmp=dot_product(tmp1,tmp1)
                  if(tmp<=rcsq) then
-                   atomindex(2*scutnum-1:2*scutnum)=[iatom-1,j-1]
-                   shifts(3*scutnum-2:3*scutnum)=shiftvalue(:,l)
+                   atomindex(:,scutnum)=[iatom-1,j-1]
+                   shifts(:,scutnum)=shiftvalue(:,l)
                    scutnum=scutnum+1
                  end if
                end do
              end do
            end do
          end do
-         imageatom(:,iatom,ninit)=coor(:,j)
+         imageatom(:,iatom,ninit)=coor(:,iatom)
        end do
      return
-end subroutine
+end subroutine get_neigh
    
