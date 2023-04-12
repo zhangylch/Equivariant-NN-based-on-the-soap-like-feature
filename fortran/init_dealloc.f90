@@ -6,8 +6,8 @@ module initmod
      integer(kind=intype) :: nimage(3),rangebox(3)
      real(kind=typenum) :: rc,rcsq,volume
      real(kind=typenum) :: matrix(3,3),inv_matrix(3,3),rangecoor(3)
-     real(kind=typenum),allocatable :: shiftvalue(:,:)
      real(kind=typenum) :: dier,dier_3 ! "dier" is the side length of the box used in cell-linked 
+     real(kind=typenum),allocatable :: shiftvalue(:,:)
 end module
 
 subroutine init_neigh(in_rc,in_dier,cell)

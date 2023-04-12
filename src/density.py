@@ -2,9 +2,8 @@ import jax
 import jax.numpy as jnp
 
 
-
 @jit
-def density(sph,radial,index_l,index_neigh,index_center,coefficients,MP_sph,density):
+def density(sph,radial,index_l,index_neigh,index_center,coefficients,MP_sph=jnp.zeros((0)),density=jnp.zeros((0))):
     '''
     sph is the spherical harmonic expansion with the dimension of (L*L,n). float/double
     radial is the array to store the radial function with the dimension of (nwave,n,batchsize) float/double

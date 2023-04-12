@@ -2,13 +2,13 @@ subroutine get_neigh(cart,atomindex,shifts,numatom,maxneigh)
      use initmod
      implicit none
      integer(kind=intype),intent(in) :: numatom,maxneigh
-     integer(kind=intype),intent(out) :: atomindex(2,maxneigh)
+     integer(kind=intype),intent(out) :: atomindex(2*maxneigh)
      integer(kind=intype) :: num,iatom,ninit,scutnum,i,j,l,i1,i2,i3
      integer(kind=intype) :: sca(3),boundary(2,3)
      integer(kind=intype) :: index_numrs(2,int(numatom*dier_3/volume*expand_coeff),rangebox(1),rangebox(2),rangebox(3))
      integer(kind=intype) :: index_rs(rangebox(1),rangebox(2),rangebox(3))
      real(kind=typenum),intent(in) :: cart(3,numatom)
-     real(kind=typenum),intent(out) :: shifts(3,maxneigh)
+     real(kind=typenum),intent(out) :: shifts(3*maxneigh)
      real(kind=typenum) :: tmp
      real(kind=typenum) :: coor(3,numatom),oriminv(3),tmp1(3)
      real(kind=typenum) :: fcoor(3,numatom),imageatom(3,numatom,length)
@@ -67,8 +67,8 @@ subroutine get_neigh(cart,atomindex,shifts,numatom,maxneigh)
                  tmp1=imageatom(:,j,l)-coor(:,iatom)
                  tmp=dot_product(tmp1,tmp1)
                  if(tmp<=rcsq) then
-                   atomindex(:,scutnum)=[iatom-1,j-1]
-                   shifts(:,scutnum)=shiftvalue(:,l)
+                   atomindex(2*scutnum-1:2*scutnum)=[iatom-1,j-1]
+                   shifts(3*scutnum-2:3*scutnum)=shiftvalue(:,l)
                    scutnum=scutnum+1
                  end if
                end do
