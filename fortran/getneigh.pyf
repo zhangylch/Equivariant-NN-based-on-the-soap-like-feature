@@ -11,6 +11,7 @@ python module getneigh ! in
             use constant
             integer(kind=4) :: interaction
             integer(kind=4) :: length
+            integer(kind=4) :: fnumatom
             integer(kind=4) dimension(3) :: nimage
             integer(kind=4) dimension(3) :: rangebox
             real(kind=8) :: rc
@@ -23,9 +24,10 @@ python module getneigh ! in
             real(kind=8) :: dier_3
             real(kind=8), allocatable,dimension(:,:) :: shiftvalue
         end module initmod
-        subroutine init_neigh(in_rc,in_dier,cell) ! in :getneigh:init_dealloc.f90
+        subroutine init_neigh(in_numatom,in_rc,in_dier,cell) ! in :getneigh:init_dealloc.f90
             use constant
             use initmod
+            integer(kind=4) intent(in) :: in_numatom
             real(kind=8) intent(in) :: in_rc
             real(kind=8) intent(in) :: in_dier
             real(kind=8) dimension(3,3),intent(in) :: cell

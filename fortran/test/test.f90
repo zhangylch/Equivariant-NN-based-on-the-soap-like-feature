@@ -1,5 +1,5 @@
 subroutine push( positions, velocities, a,  dt, m,n)
-    integer, intent(in) :: n,m
+    integer(4), intent(in) :: n,m
     real(8), intent(in) :: dt
     real(8), dimension(3,n), intent(in) :: velocities
     real(8), dimension(3,n), intent(in) :: positions

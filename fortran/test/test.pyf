@@ -8,11 +8,12 @@ python module test ! in
             real(kind=8) dimension(3,n),intent(in),depend(n) :: velocities
             real(kind=8) dimension(3,m),intent(out),depend(m) :: a
             real(kind=8) intent(in) :: dt
-            integer intent(in) :: m
-            integer, optional,intent(in),check(shape(positions,1)==n),depend(positions) :: n=shape(positions,1)
+            integer(kind=4) intent(in) :: m
+            integer(kind=4), optional,intent(in),check(shape(positions, 1) == n),depend(positions) :: n=shape(positions, 1)
         end subroutine push
     end interface 
 end python module test
 
-! This file was auto-generated with f2py (version:2).
-! See http://cens.ioc.ee/projects/f2py2e/
+! This file was auto-generated with f2py (version:1.24.2).
+! See:
+! https://web.archive.org/web/20140822061353/http://cens.ioc.ee/projects/f2py2e
