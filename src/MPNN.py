@@ -13,6 +13,7 @@ class MPNN():
         self.MP_loop=MP_loop
         self.max_l=max_l+1
         self.norbit=nwave*self.max_l
+        self.cutoff=cutoff
         # define the class for the calculation of spherical harmonic expansion
         self.sph_cal=sph_cal(max_l=max_l,Dtype=Dtype)
         # the first time is slow for the compile of the jit
@@ -57,7 +58,7 @@ class MPNN():
         coor=cart[:,atomindex[1]]-cart[:,atomindex[0]]+shifts
         distances=jnp.linalg.norm(coor,axis=0)
         radial=self.radial_func.apply(self.radial_params,distances)
-        sph=self.sph_cal(coor)
+        sph=self.sph_cal(coor/self.cutoff)
         MP_sph=jnp.zeros((cart.shape[0],sph.shape[0],self.nwave),dtype=cart.dtype)
         density=jnp.zeros((cart.shape[1],self.max_l,self.nwave),dtype=cart.dtype)
         coefficients=self.emb_nn.apply(self.emb_params,species)

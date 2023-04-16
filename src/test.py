@@ -17,7 +17,7 @@ import nn
 
 cutoff=5.0
 nwave=2
-max_l=3
+max_l=4
 numatom=8
 maxneigh=40
 key=jrm.PRNGKey(0)
@@ -42,9 +42,8 @@ print(atomindex)
 getneigh.deallocate_all()
 
 
-model=MPNN.MPNN(key,radial.radial_func,sph_cal.SPH_CAL,density.density,nn.MLP,nwave=nwave,max_l=max_l,cutoff=cutoff,MP_loop=MP_loop,emb_nl=emb_nl,MP_nl=MP_nl,output_nl=output_nl,Dtype=jnp.dtype("float64"))
+model=MPNN.MPNN(key,radial.radial_func,sph_cal.SPH_CAL,density.density,nn.MLP,nwave=nwave,max_l=max_l,cutoff=cutoff,MP_loop=MP_loop,emb_nl=emb_nl,MP_nl=MP_nl,output_nl=output_nl,Dtype=dtype)
 
-cart=cart/cutoff
 energy=model(cart,atomindex,shifts,species)
 rotate=jnp.zeros((3,3),dtype=dtype)
 ceta=np.pi/4
