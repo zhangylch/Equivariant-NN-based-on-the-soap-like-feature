@@ -4,7 +4,7 @@ program main
     implicit none
     integer(kind=intype),parameter :: numatom=5,maxneigh=20
     real(kind=typenum),parameter :: in_rc=5.0,in_dier=5.0
-    integer(kind=intype) i,j
+    integer(kind=intype) i,j,scutnum
     integer(kind=intype) :: atomindex(2,maxneigh)
     real(kind=typenum) :: shifts(3,maxneigh)
     real(kind=typenum) ::  cart(3,numatom),cell(3,3)
@@ -20,7 +20,7 @@ program main
       end do
     end do
     call init_neigh(in_rc,in_dier,cell)
-    call get_neigh(cart,atomindex,shifts,maxneigh,numatom)
+    call get_neigh(cart,atomindex,shifts,maxneigh,numatom,scutnum)
     write(*,*) atomindex,shifts
     call deallocate_all()
 end 

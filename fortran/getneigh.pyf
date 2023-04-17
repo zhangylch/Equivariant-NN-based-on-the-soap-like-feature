@@ -11,7 +11,6 @@ python module getneigh ! in
             use constant
             integer(kind=4) :: interaction
             integer(kind=4) :: length
-            integer(kind=4) :: fnumatom
             integer(kind=4) dimension(3) :: nimage
             integer(kind=4) dimension(3) :: rangebox
             real(kind=8) :: rc
@@ -24,10 +23,9 @@ python module getneigh ! in
             real(kind=8) :: dier_3
             real(kind=8), allocatable,dimension(:,:) :: shiftvalue
         end module initmod
-        subroutine init_neigh(in_numatom,in_rc,in_dier,cell) ! in :getneigh:init_dealloc.f90
+        subroutine init_neigh(in_rc,in_dier,cell) ! in :getneigh:init_dealloc.f90
             use constant
             use initmod
-            integer(kind=4) intent(in) :: in_numatom
             real(kind=8) intent(in) :: in_rc
             real(kind=8) intent(in) :: in_dier
             real(kind=8) dimension(3,3),intent(in) :: cell
@@ -35,7 +33,7 @@ python module getneigh ! in
         subroutine deallocate_all ! in :getneigh:init_dealloc.f90
             use initmod
         end subroutine deallocate_all
-        subroutine get_neigh(cart,atomindex,shifts,maxneigh,numatom) ! in :getneigh:get_neigh.f90
+        subroutine get_neigh(cart,atomindex,shifts,maxneigh,numatom,scutnum) ! in :getneigh:get_neigh.f90
             use constant
             use initmod
             real(kind=8) dimension(3,numatom),intent(in) :: cart
@@ -43,6 +41,7 @@ python module getneigh ! in
             real(kind=8) dimension(3,maxneigh),intent(out),depend(maxneigh) :: shifts
             integer(kind=4) intent(in) :: maxneigh
             integer(kind=4), optional,intent(in),check(shape(cart, 1) == numatom),depend(cart) :: numatom=shape(cart, 1)
+            integer(kind=4) intent(out) :: scutnum
         end subroutine get_neigh
         subroutine inverse_matrix(matrix,inv_matrix) ! in :getneigh:inverse_matrix.f90
             use constant

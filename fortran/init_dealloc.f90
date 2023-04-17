@@ -5,7 +5,7 @@ end module
 module initmod
      use constant
      implicit none
-     integer(kind=intype) :: interaction,length,fnumatom
+     integer(kind=intype) :: interaction,length
      integer(kind=intype) :: nimage(3),rangebox(3)
      real(kind=typenum) :: rc,rcsq,volume
      real(kind=typenum) :: matrix(3,3),inv_matrix(3,3),rangecoor(3)
@@ -13,18 +13,16 @@ module initmod
      real(kind=typenum),allocatable :: shiftvalue(:,:)
 end module
 
-subroutine init_neigh(in_numatom,in_rc,in_dier,cell)
+subroutine init_neigh(in_rc,in_dier,cell)
      use constant
      use initmod
      implicit none
      integer(kind=intype) :: i,j,k,l
-     integer(kind=intype),intent(in) :: in_numatom
      real(kind=typenum),intent(in) :: in_rc,in_dier,cell(3,3)
      real(kind=typenum) :: s1,s2,rlen1,rlen2
      real(kind=typenum) :: tmp(3),maxd(3),mind(3),vec1(3,3),vec2(3,3)
        rc=in_rc
        rcsq=rc*rc
-       fnumatom=in_numatom
        matrix=cell
 !Note that the fortran store the array with the column first, so the lattice parameters is the transpose of the its realistic shape
        tmp(1)=matrix(1,1)
