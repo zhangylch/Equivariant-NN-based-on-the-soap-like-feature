@@ -7,7 +7,7 @@ from jax.numpy import dtype
 class radial_func(nn.Module):
     nwave: int
     cutoff: float
-    Dtype: dtype=dtype(jnp.float64)
+    Dtype: dtype=dtype(jnp.float32)
     
     def setup(self):
         uniform_init=uniform(self.cutoff)
@@ -25,7 +25,7 @@ class radial_func(nn.Module):
         center is an optimizable parameters with its dimension of (nwave)
         '''
         shift_distances=distances-self.center
-        gaussian=jnp.exp(self.alpha*(shift_distances*shift_distances))
+        gaussian=jnp.exp(-self.alpha*(shift_distances*shift_distances))
         return gaussian
     
     def cutoff_func(self,distances):
