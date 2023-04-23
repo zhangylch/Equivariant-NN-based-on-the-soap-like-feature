@@ -9,7 +9,7 @@ module initmod
      integer(kind=intype) :: nimage(3),rangebox(3)
      real(kind=typenum) :: rc,rcsq,volume
      real(kind=typenum) :: matrix(3,3),inv_matrix(3,3),rangecoor(3)
-     real(kind=typenum) :: dier,dier_3 ! "dier" is the side length of the box used in cell-linked 
+     real(kind=typenum) :: dier ! "dier" is the side length of the box used in cell-linked 
      real(kind=typenum),allocatable :: shiftvalue(:,:)
 end module
 
@@ -29,10 +29,7 @@ subroutine init_neigh(in_rc,in_dier,cell)
        tmp(2)=matrix(2,2)
        tmp(3)=matrix(3,3)
        dier=min(in_dier,minval(tmp))
-       dier_3=dier*dier*dier
        interaction=ceiling(rc/dier)
-       call inverse_matrix(matrix,inv_matrix)
-       volume=tmp(1)*tmp(2)*tmp(3)
        nimage=ceiling(rc/abs(tmp))
        length=(2*nimage(1)+1)*(2*nimage(2)+1)*(2*nimage(3)+1)
        call inverse_matrix(matrix,inv_matrix)

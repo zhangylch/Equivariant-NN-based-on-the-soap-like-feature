@@ -19,7 +19,12 @@ cutoff=5.0
 dtype=dtype(jnp.float32)
 patience_epoch=100
 decay_factor=0.5
-force=True
+force_table=True
+if force_table==True:
+    nprop=2
+else:
+    nprop=1
+device="gpu"
 init_weight=[1.0,5.0]
 final_weight=[1.0,0.5]
 
@@ -27,16 +32,17 @@ final_weight=[1.0,0.5]
 key=jrm.PRNGKey(0)
 key=jrm.split(key)
 
+device=jax.devices(device)
 # generate the random cart to initialize the model.
-cart=(np.random.rand(3,2)).astype(dtype)
+cart=jax.device_put((np.random.rand(3,2)).astype(dtype),device)
 atomindex=jnp.array([[0,1],[1,0]],dtype=jnp.int32)
-shifts=jnp.zeros((3,2),dtype=dtype)
-species=jnp.array([12,1,1,1,1]).reshape(-1,1)
+shifts=jax.device_put(jnp.zeros((3,2),dtype=dtype),device)
+species=jax.device(jnp.array([12,1,1,1,1]).reshape(-1,1),device)
 model=MPNN.MPNN(emb_nl,MP_nl,output_nl,key=key[0],nwave=nwave,max_l=max_l,MP_loop=MP_loop,cutoff=cutoff,Dtype=dtype)
 params=model.init(key[0],cart,atomindex,shifts,species)
-if force is not None:
+if force_table is not None:
     model=jax.value_and_grad(model,argnums=1)
-model=jax.jit(jax.vmap(Prop_cal,in_axes=0,output_axes=0),argnums=0)
+model=jax.jit(jax.vmap(Prop_cal,in_axes=0,output_axes=0),argnums=0,device=device)
 
 # define the dataloader
 

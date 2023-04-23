@@ -1,17 +1,22 @@
-import torch
-import numpy as np
-import torch.distributed as dist
+import jax
+import jax.numpy as jnp
+import dataloader.read_data as read_data
+import fortran.getneigh as getneigh
 
 class DataLoader():
-    def __init__(self,image,label,numatoms,index_ele,atom_index,shifts,batchsize,min_data_len=None,shuffle=True):
-        self.image=image
-        self.label=label
-        self.index_ele=index_ele
-        self.numatoms=numatoms
-        self.atom_index=atom_index
-        self.shifts=shifts
+    def __init__(self,maxneigh,cutoff=5.0,in_dier=2.5,floder_list="train",force_table=True,min_data_len=None,shuffle=True,Dtype=dtype):
+        numpoint,atom,species,numatoms,scalmatrix,period_table,coor,pot,force=  \
+        read_data.Read_data(floder_list="test",force_table=force_table)
+        self.maxneigh=maxneigh
+        self.cutoff=cutoff
+        self.in_dier=in_dier
+        self.Dtype=Dtype
+        self.image=jnp.array(coor,dtype=Dtype)
+        self.label=[jnp.array(pot,dtype=Dtype),jnp.array(force,dtype=Dtype)
+        self.cell=jnp.array(scalmatrix,dtype=Dtype)
+        self.species=jnp.array(species,dtype=jnp.int32)
         self.batchsize=batchsize
-        self.end=self.image.shape[0]
+        self.end=numpoint
         self.shuffle=shuffle               # to control shuffle the data
         if self.shuffle:
             self.shuffle_list=torch.randperm(self.end)
@@ -33,13 +38,23 @@ class DataLoader():
             index_batch=self.shuffle_list[self.ipoint:min(self.end,self.ipoint+self.batchsize)]
             coordinates=self.image.index_select(0,index_batch)
             abprop=(label.index_select(0,index_batch) for label in self.label)
-            species=self.index_ele.index_select(0,index_batch)
-            shifts=self.shifts.index_select(0,index_batch)
-            numatoms=self.numatoms.index_select(0,index_batch)
-            atom_index=self.atom_index[:,index_batch]
+            cell=self.cell.index_select(0,index_batch)
+            species=self.species.index_select(0,index_batch)
+            neighlist=[]
+            shiftimage=[]
+            for i,cart in enumerate(coordinates):
+                icell=cell[i].transpose()
+                cart=cart.transpose()
+                getneigh.init_neigh(self.cutoff,self.in_dier,icell)
+                atomindex,shifts,scutnum=getneigh.get_neigh(cart,self.maxneigh)
+                getneigh.deallocate_all()
+                neighlist.append(atomindex)
+                shiftimage.append(shifts)
+            neighlist=jnp.array(neighlist,dtype=jnp.int32)
+            shiftimage=jnp.array(shiftimage,dtype=self.Dtype)
             self.ipoint+=self.batchsize
             #print(dist.get_rank(),self.ipoint,self.batchsize)
-            return abprop,coordinates,numatoms,species,atom_index,shifts
+            return coordinates,neighlist,shiftimage,species,abprop
         else:
             # if shuffle==True: shuffle the data 
             if self.shuffle:
