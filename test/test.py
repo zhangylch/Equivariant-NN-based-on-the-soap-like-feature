@@ -38,7 +38,7 @@ atomindex=atomindex[:,0:scutnum]
 shifts=shifts[:,0:scutnum]
 
 key=jrm.split(key)
-model=MPNN.MPNN(emb_nl,MP_nl,output_nl,key=key[0],nwave=nwave,max_l=max_l,MP_loop=MP_loop,cutoff=cutoff,Dtype=dtype)
+model=MPNN.MPNN(2,emb_nl,MP_nl,output_nl,key=key[0],nwave=nwave,max_l=max_l,MP_loop=MP_loop,cutoff=cutoff,Dtype=dtype)
 params=model.init(key[0],cart,atomindex,shifts,species)
 
 energy=model.apply(params,cart,atomindex,shifts,species)

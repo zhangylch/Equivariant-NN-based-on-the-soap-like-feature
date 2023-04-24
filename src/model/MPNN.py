@@ -11,6 +11,7 @@ from src.low_level import density, MLP, sph_cal, radial
 
 
 class MPNN(nn.Module):
+    effect_num: int
     emb_nl: Sequence[int]
     MP_nl: Sequence[int]
     output_nl: Sequence[int]
@@ -74,7 +75,7 @@ class MPNN(nn.Module):
             density,MP_sph=self.density(sph,radial,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)
             coefficients=nn.apply(self.MP_params_list[inn],density.reshape(-1,self.norbit))
         density,MP_sph=self.density(sph,radial,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)
-        output=jnp.sum(self.outnn.apply(self.out_params,density.reshape(-1,self.norbit)))
-        return output
+        output=self.outnn.apply(self.out_params,density.reshape(-1,self.norbit))
+        return output.reshape(-1)[0:self.effect_num]
 
 
