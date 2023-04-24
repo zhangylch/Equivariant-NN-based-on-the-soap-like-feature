@@ -1,8 +1,8 @@
-subroutine get_neigh(cart,atomindex,shifts,maxneigh,numatom,scutnum)
+subroutine get_neigh(cart,atomindex,shifts,maxneigh,elec_num,numatom,scutnum)
      use constant
      use initmod
      implicit none
-     integer(kind=intype),intent(in) :: maxneigh,numatom
+     integer(kind=intype),intent(in) :: maxneigh,elec_num,numatom
      integer(kind=intype),intent(out) :: atomindex(2,maxneigh)
      integer(kind=intype),intent(out) :: scutnum
      integer(kind=intype) :: num,iatom,ninit,i,j,l,i1,i2,i3
@@ -51,7 +51,7 @@ subroutine get_neigh(cart,atomindex,shifts,maxneigh,numatom,scutnum)
        end do
        scutnum=1
        ninit=(length+1)/2
-       do iatom = 1, numatom
+       do iatom = 1, elec_num
          sca=ceiling(coor(:,iatom)/dier)
          ninit=(length+1)/2
          imageatom(:,iatom,ninit)=100d0

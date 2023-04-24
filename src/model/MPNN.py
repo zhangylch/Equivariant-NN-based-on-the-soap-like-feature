@@ -11,6 +11,7 @@ from src.low_level import density, MLP, sph_cal, radial
 
 
 class MPNN(nn.Module):
+    center_num: int
     emb_nl: Sequence[int]
     MP_nl: Sequence[int]
     output_nl: Sequence[int]
@@ -68,7 +69,7 @@ class MPNN(nn.Module):
         radial=self.radial_func.apply(self.radial_params,distances)
         sph=self.sph_cal(coor/self.cutoff)
         MP_sph=jnp.zeros((cart.shape[0],sph.shape[0],self.nwave),dtype=cart.dtype)
-        density=jnp.zeros((cart.shape[1],self.r_max_l,self.nwave),dtype=cart.dtype)
+        density=jnp.zeros((self.center_num,self.r_max_l,self.nwave),dtype=cart.dtype)
         coefficients=self.emb_nn.apply(self.emb_params,species)
         for inn, nn in enumerate(self.MPNN_list):
             density,MP_sph=self.density(sph,radial,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)

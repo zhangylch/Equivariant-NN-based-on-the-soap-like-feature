@@ -1,10 +1,11 @@
 import jax
 import jax.numpy as jnp
+import numpy as np
 import dataloader.read_data as read_data
 import fortran.getneigh as getneigh
 
 class DataLoader():
-    def __init__(self,maxneigh,cutoff=5.0,in_dier=2.5,floder_list="train",force_table=True,min_data_len=None,shuffle=True,Dtype=dtype):
+    def __init__(self,maxneigh,batchsize,cutoff=5.0,in_dier=2.5,floder_list="train",force_table=True,min_data_len=None,shuffle=True,Dtype=jnp.flaot32,device=jax.devices("gpu")):
         numpoint,atom,species,numatoms,scalmatrix,period_table,coor,pot,force=  \
         read_data.Read_data(floder_list="test",force_table=force_table)
         self.maxneigh=maxneigh
@@ -12,16 +13,16 @@ class DataLoader():
         self.in_dier=in_dier
         self.Dtype=Dtype
         self.image=jnp.array(coor,dtype=Dtype)
-        self.label=[jnp.array(pot,dtype=Dtype),jnp.array(force,dtype=Dtype)
+        self.label=[jnp.array(pot,dtype=Dtype),jnp.array(force,dtype=Dtype)]
         self.cell=jnp.array(scalmatrix,dtype=Dtype)
         self.species=jnp.array(species,dtype=jnp.int32)
         self.batchsize=batchsize
         self.end=numpoint
         self.shuffle=shuffle               # to control shuffle the data
         if self.shuffle:
-            self.shuffle_list=torch.randperm(self.end)
+            self.shuffle_list=np.random.permutation(self.end)
         else:
-            self.shuffle_list=torch.arange(self.end)
+            self.shuffle_list=np.arange(self.end)
         if not min_data_len:
             self.min_data=self.end
         else:
@@ -37,7 +38,7 @@ class DataLoader():
         if self.ipoint < self.min_data:
             index_batch=self.shuffle_list[self.ipoint:min(self.end,self.ipoint+self.batchsize)]
             coordinates=self.image.index_select(0,index_batch)
-            abprop=(label.index_select(0,index_batch) for label in self.label)
+            abprop=(device_put(label.index_select(0,index_batch),device=self.device) for label in self.label)
             cell=self.cell.index_select(0,index_batch)
             species=self.species.index_select(0,index_batch)
             neighlist=[]
@@ -54,10 +55,10 @@ class DataLoader():
             shiftimage=jnp.array(shiftimage,dtype=self.Dtype)
             self.ipoint+=self.batchsize
             #print(dist.get_rank(),self.ipoint,self.batchsize)
-            return coordinates,neighlist,shiftimage,species,abprop
+            return device_put(coordinates,device=self.device),device_put(neighlist,device=self.device),device_put(shiftimage,device=self.device),device_put(species,device=self.device),abprop
         else:
             # if shuffle==True: shuffle the data 
             if self.shuffle:
-                self.shuffle_list=torch.randperm(self.end)
+                self.shuffle_list=np.random.permutation(self.end)
             #print(dist.get_rank(),"hello")
             raise StopIteration

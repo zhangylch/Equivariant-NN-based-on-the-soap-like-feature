@@ -1,8 +1,9 @@
-import numpy as np
 import jax
+import numpy as np
 import jax.numpy as jnp
 from flax import linen as nn
-from src.model.MPNN as MPNN
+import src.model.MPNN as MPNN
+import src.dataloader.dataloader as dataloader
 import fortran.getneigh as getneigh
 import optax
 import time
@@ -16,6 +17,8 @@ nwave=8
 max_l=2
 MP_loop=2
 cutoff=5.0
+batchsize_train=32
+batchsize_test=2*batchsize_train
 dtype=dtype(jnp.float32)
 patience_epoch=100
 decay_factor=0.5
@@ -24,7 +27,8 @@ if force_table==True:
     nprop=2
 else:
     nprop=1
-device="gpu"
+device="cpu"
+floder="/data/home/scv2201/run/zyl/data/ch4/2.5e3/"
 init_weight=[1.0,5.0]
 final_weight=[1.0,0.5]
 
@@ -48,7 +52,7 @@ model=jax.jit(jax.vmap(Prop_cal,in_axes=0,output_axes=0),argnums=0,device=device
 
 # define the loss function
 @jax.jit
-def get_loss(params,cart,atomindex,shifts,species,label,weight)
+def get_loss(params,cart,atomindex,shifts,species,label,weight):
     prediction=model(params,cart,atomindex,shifts,species)
     lossprop=jnp.concatenate([jnp.sum(jnp.square(iprediction-ilabel)) for iprediction, ilabel in zip(prediction, label)])
     loss=jnp.inner(lossprop,weight)
@@ -56,6 +60,12 @@ def get_loss(params,cart,atomindex,shifts,species,label,weight)
 
 loss_grad_fn=jax_value_grad(get_loss,has_aux=True)
 
+
+#Instantiate the dataloader
+train_floder=floder+"train"
+test_floder=floder+"test"
+load_train=dataloader.DataLoader(maxneigh,batchsize_train,cutoff=cutoff,in_dier=cutoff/2.0,floder_list=train_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device)
+load_test=dataloader.DataLoader(maxneigh,batchsize_test,cutoff=cutoff,in_dier=cutoff/2.0,floder_list=test_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device)
 
 init_weight=jnp.array(init_weight,dtype=dtype)
 final_weight=jnp.array(final_weight,dtype=dtype)
@@ -77,7 +87,7 @@ while True:
         if epoch>patience_epoch: break 
         loss_train=jnp.zeros(1,dtype=dtype)
         lossprop_train=jnp.zeros(nprop,dtype=dtype)
-        for data in data_train:
+        for data in load_train:
             (loss,lossprop),grads=loss_grad_fn(params,*data,weight)
             updates,opt_state=optim.update(grads,opt_state)
             params=optax.apply_updates(params,updates)
@@ -86,7 +96,7 @@ while True:
 
         loss_test=jnp.zeros(1,dtype=dtype)
         lossprop_test=jnp.zeros(nprop,dtype=dtype)
-        for data in data_test:
+        for data in load_test:
             loss,loss_prop=get_loss(params,*data)
             loss_test+=loss
             lossprop_test+=loss
