@@ -1,2 +1,4 @@
 __pycache__/
 .gitignore
+*.so
+*.pyf
