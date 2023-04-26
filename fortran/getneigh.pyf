@@ -12,15 +12,12 @@ python module getneigh ! in
             integer(kind=4) :: interaction
             integer(kind=4) :: length
             integer(kind=4) dimension(3) :: nimage
-            integer(kind=4) dimension(3) :: rangebox
             real(kind=8) :: rc
             real(kind=8) :: rcsq
             real(kind=8) :: volume
             real(kind=8) dimension(3,3) :: matrix
             real(kind=8) dimension(3,3) :: inv_matrix
-            real(kind=8) dimension(3) :: rangecoor
             real(kind=8) :: dier
-            real(kind=8) :: dier_3
             real(kind=8), allocatable,dimension(:,:) :: shiftvalue
         end module initmod
         subroutine init_neigh(in_rc,in_dier,cell) ! in :getneigh:init_dealloc.f90
@@ -33,10 +30,11 @@ python module getneigh ! in
         subroutine deallocate_all ! in :getneigh:init_dealloc.f90
             use initmod
         end subroutine deallocate_all
-        subroutine get_neigh(cart,atomindex,shifts,maxneigh,numatom,scutnum) ! in :getneigh:get_neigh.f90
+        subroutine get_neigh(cart,coor,atomindex,shifts,maxneigh,numatom,scutnum) ! in :getneigh:get_neigh.f90
             use constant
             use initmod
             real(kind=8) dimension(3,numatom),intent(in) :: cart
+            real(kind=8) dimension(3,numatom),intent(out),depend(numatom) :: coor
             integer(kind=4) dimension(2,maxneigh),intent(out),depend(maxneigh) :: atomindex
             real(kind=8) dimension(3,maxneigh),intent(out),depend(maxneigh) :: shifts
             integer(kind=4) intent(in) :: maxneigh

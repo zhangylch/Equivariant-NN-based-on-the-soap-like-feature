@@ -1,4 +1,10 @@
 __pycache__/
+<<<<<<< HEAD
 .gitignore
 *.so
 *.pyf
+=======
+*.so 
+*.pyf
+cpu_gpu.py
+>>>>>>> dev
