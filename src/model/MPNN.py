@@ -8,10 +8,9 @@ from jax.numpy import dtype,array
 import flax.linen as nn
 from typing import Sequence
 from src.low_level import density, MLP, sph_cal, radial
-
+from flax.core import freeze
 
 class MPNN(nn.Module):
-    center_num: int
     emb_nl: Sequence[int]
     MP_nl: Sequence[int]
     output_nl: Sequence[int]
@@ -30,8 +29,8 @@ class MPNN(nn.Module):
         key=jrm.split(self.key,num=3)
         # define the class for the calculation of radial function
         self.radial_func = radial.radial_func(self.nwave,self.cutoff,Dtype=self.Dtype)
-        self.radial_params = self.radial_func.init(key[0],jrm.uniform(key[1],(10,)))
-        
+        self.radial_params = self.param("radial_params",self.radial_func.init,(jrm.uniform(key[1],(10,))))
+
         # define the class for the calculation of spherical harmonic expansion
         self.sph_cal=sph_cal.SPH_CAL(max_l=self.max_l,Dtype=self.Dtype)
         # the first time is slow for the compile of the jit
@@ -40,7 +39,7 @@ class MPNN(nn.Module):
         # define the embedded layer used to convert the atomin number of a coefficients
         key=jrm.split(key[-1])
         self.emb_nn=MLP.MLP(self.emb_nl,self.nwave)
-        self.emb_params=self.emb_nn.init(key[0],jnp.ones(1))
+        self.emb_params=self.param("emb_params",self.emb_nn.init,(jnp.ones(1)))
 
         # used for the convenient summation over the same l
         self.index_l=jnp.array([0],dtype=jnp.int32)
@@ -57,8 +56,8 @@ class MPNN(nn.Module):
         key=jrm.split(key[-1],num=self.MP_loop+2)  # The 3 more key is for the final nn, embedded nn and the seed to generate next key.
         random_x=jnp.ones(self.norbit)
         # initialize the model 
-        self.MP_params_list=[self.MPNN_list[iMP_loop].init(key[iMP_loop],random_x) for iMP_loop in range(self.MP_loop)]
-        self.out_params=self.outnn.init(key[self.MP_loop],random_x)
+        self.MP_params_list=[self.param("MPNN_"+str(iMP_loop)+"_params",self.MPNN_list[iMP_loop].init,(random_x)) for iMP_loop in range(self.MP_loop)]
+        self.out_params=self.param("out_params",self.outnn.init,(random_x))
         #embeded nn
 
        
@@ -69,7 +68,7 @@ class MPNN(nn.Module):
         radial=self.radial_func.apply(self.radial_params,distances)
         sph=self.sph_cal(coor/self.cutoff)
         MP_sph=jnp.zeros((cart.shape[0],sph.shape[0],self.nwave),dtype=cart.dtype)
-        density=jnp.zeros((self.center_num,self.r_max_l,self.nwave),dtype=cart.dtype)
+        density=jnp.zeros((cart.shape[1],self.r_max_l,self.nwave),dtype=cart.dtype)
         coefficients=self.emb_nn.apply(self.emb_params,species)
         for inn, nn in enumerate(self.MPNN_list):
             density,MP_sph=self.density(sph,radial,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)

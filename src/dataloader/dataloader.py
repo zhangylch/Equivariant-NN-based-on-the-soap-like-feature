@@ -1,20 +1,26 @@
 import jax
 import jax.numpy as jnp
+from jax import device_put
 import numpy as np
-import dataloader.read_data as read_data
+import src.dataloader.read_data as read_data
 import fortran.getneigh as getneigh
 
 class DataLoader():
-    def __init__(self,maxneigh,batchsize,cutoff=5.0,in_dier=2.5,floder_list="train",force_table=True,min_data_len=None,shuffle=True,Dtype=jnp.flaot32,device=jax.devices("gpu")):
-        numpoint,atom,species,numatoms,scalmatrix,period_table,coor,pot,force=  \
-        read_data.Read_data(floder_list="test",force_table=force_table)
+    def __init__(self,maxneigh,batchsize,cutoff=5.0,dier=2.5,datafloder="train/",force_table=True,min_data_len=None,shuffle=True,Dtype=jnp.float32,device=jax.devices("cpu")):
+        numpoint,coor,cell,species,numatoms,pot,force =  \
+        read_data.Read_data(datafloder=datafloder,force_table=force_table,Dtype=Dtype)
+        self.numpoint=numpoint
         self.maxneigh=maxneigh
         self.cutoff=cutoff
-        self.in_dier=in_dier
+        self.dier=dier
         self.Dtype=Dtype
+        self.device=device
         self.image=jnp.array(coor,dtype=Dtype)
-        self.label=[jnp.array(pot,dtype=Dtype),jnp.array(force,dtype=Dtype)]
-        self.cell=jnp.array(scalmatrix,dtype=Dtype)
+        if force_table:
+            self.label=[jnp.array(pot,dtype=Dtype),jnp.array(force,dtype=Dtype)]
+        else:   
+            self.label=[jnp.array(pot,dtype=Dtype)]
+        self.cell=jnp.array(cell,dtype=Dtype)
         self.species=jnp.array(species,dtype=jnp.int32)
         self.batchsize=batchsize
         self.end=numpoint
@@ -28,7 +34,6 @@ class DataLoader():
         else:
             self.min_data=min_data_len
         self.length=int(np.ceil(self.min_data/self.batchsize))
-        #print(dist.get_rank(),self.length,self.end)
       
     def __iter__(self):
         self.ipoint = 0
@@ -37,25 +42,29 @@ class DataLoader():
     def __next__(self):
         if self.ipoint < self.min_data:
             index_batch=self.shuffle_list[self.ipoint:min(self.end,self.ipoint+self.batchsize)]
-            coordinates=self.image.index_select(0,index_batch)
-            abprop=(device_put(label.index_select(0,index_batch),device=self.device) for label in self.label)
-            cell=self.cell.index_select(0,index_batch)
-            species=self.species.index_select(0,index_batch)
+            coordinates=self.image[index_batch]
+            abprop=(device_put(label[index_batch],device=self.device) for label in self.label)
+            cell=self.cell[index_batch]
+            species=self.species[index_batch]
             neighlist=[]
             shiftimage=[]
+            coor=[]
             for i,cart in enumerate(coordinates):
-                icell=cell[i].transpose()
-                cart=cart.transpose()
-                getneigh.init_neigh(self.cutoff,self.in_dier,icell)
-                atomindex,shifts,scutnum=getneigh.get_neigh(cart,self.maxneigh)
+                icell=cell[i]
+                getneigh.init_neigh(self.cutoff,self.dier,icell)
+                cart,atomindex,shifts,scutnum=getneigh.get_neigh(cart,self.maxneigh)
                 getneigh.deallocate_all()
                 neighlist.append(atomindex)
                 shiftimage.append(shifts)
+                coor.append(cart)
             neighlist=jnp.array(neighlist,dtype=jnp.int32)
             shiftimage=jnp.array(shiftimage,dtype=self.Dtype)
             self.ipoint+=self.batchsize
-            #print(dist.get_rank(),self.ipoint,self.batchsize)
-            return device_put(coordinates,device=self.device),device_put(neighlist,device=self.device),device_put(shiftimage,device=self.device),device_put(species,device=self.device),abprop
+            coor=device_put(jnp.array(coor,dtype=self.Dtype),device=self.device)
+            neighlist=device_put(neighlist,device=self.device)
+            shiftimage=device_put(shiftimage,device=self.device)
+            species=device_put(species,device=self.device)
+            return coor,neighlist,shiftimage,species,abprop
         else:
             # if shuffle==True: shuffle the data 
             if self.shuffle:

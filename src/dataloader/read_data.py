@@ -1,63 +1,53 @@
 import numpy as np
+import jax
 import math
 
 # read system configuration and energy/force
-def Read_data(floderlist=["train","validation"],force_table=None):
+def Read_data(datafloder="train/",force_table=None,Dtype=np.float32):
     coor=[]
-    scalmatrix=[]
-    abprop=[] 
+    cell=[]
+    pot=[] 
     force=None
-    atom=[]
     species=[]
     numatoms=[]
-    period_table=[]
-    # tmp variable
     #===================variable for force====================
     if force_table==1:
        force=[]
-    numpoint=[0 for _ in range(len(floderlist))]
+    numpoint=0
     num=0
-    for ifloder,floder in enumerate(floderlist):
-        fname2=floder+'configuration'
-        with open(fname2,'r') as f1:
-            while True:
+    fname2=datafloder+'configuration'
+    icell=np.zeros((3,3),dtype=Dtype)
+    with open(fname2,'r') as f1:
+        while True:
+            string=f1.readline()
+            if not string: break
+            numatom=int(string)
+            numatoms.append(numatom)
+            string=f1.readline()
+            # here to save the coordinate with row first to match the neighluist in fortran
+            m=np.array(list(map(float,string.split())))
+            icell[:,0]=m
+            string=f1.readline()
+            m=np.array(list(map(float,string.split())))
+            icell[:,1]=m
+            string=f1.readline()
+            m=np.array(list(map(float,string.split())))
+            icell[:,2]=m
+            icoor=np.zeros((3,numatom),dtype=Dtype)
+            ispecies=np.zeros((numatom,1),dtype=np.int32)
+            if force_table==1: iforce=np.zeros((3,numatom),dtype=Dtype)
+            for i in range(numatom):
                 string=f1.readline()
-                if not string: break
-                string=f1.readline()
-                scalmatrix.append([])
-                m=list(map(float,string.split()))
-                scalmatrix[num].append(m)
-                string=f1.readline()
-                m=list(map(float,string.split()))
-                scalmatrix[num].append(m)
-                string=f1.readline()
-                m=list(map(float,string.split()))
-                scalmatrix[num].append(m)
-                string=f1.readline()
-                m=list(map(float,string.split()[1:4]))
-                period_table.append(m)
-                coor.append([])
-                species.append([])
-                atom.append([])
-                if force_table==1: force.append([])
-                while True:
-                    string=f1.readline()
-                    m=string.split()
-                    if m[0]=="abprop:":
-                        abprop.append(list(map(float,m[1:2])))
-                        break
-                    if not force_table:
-                        atom[num].append(m[0]) 
-                        tmp=list(map(float,m[1:]))
-                        species[num].append(tmp[0])
-                        coor[num].append(tmp[1:4])
-                    else:
-                        atom[num].append(m[0]) 
-                        tmp=list(map(float,m[1:]))
-                        species[num].append(tmp[0])
-                        coor[num].append(tmp[1:4])
-                        force[num].append(tmp[4:7])
-                numpoint[ifloder]+=1
-                numatoms.append(len(atom[num]))
-                num+=1
-    return numpoint,atom,species,numatoms,scalmatrix,period_table,coor,abprop,force
+                m=string.split()
+                tmp=np.array(list(map(float,m[1:])))
+                ispecies[num,0]=tmp[0]
+                icoor[:,num]=tmp[1:4]
+                if force_table: iforce[:,num]=-tmp[4:7]
+            string=f1.readline()
+            pot.append(float(string.split()[1]))
+            numpoint+=1
+            coor.append(icoor)
+            cell.append(icell)
+            species.append(ispecies)
+            if force_table: force.append(iforce)
+    return numpoint,coor,cell,species,numatoms,pot,force
