@@ -11,6 +11,7 @@ class DataLoader():
         read_data.Read_data(datafloder=datafloder,force_table=force_table,Dtype=Dtype)
         self.numpoint=numpoint
         self.maxneigh=maxneigh
+        self.numatoms=jnp.array(numatoms,dtype=jnp.int32)
         self.cutoff=cutoff
         self.dier=dier
         self.Dtype=Dtype
