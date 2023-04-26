@@ -1,7 +1,7 @@
 __pycache__/
-.gitignore
+\.gitignore
 *.so
 *.pyf
-*.so 
-*.pyf
 cpu_gpu.py
+run/
+
