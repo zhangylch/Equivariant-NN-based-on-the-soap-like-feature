@@ -42,7 +42,8 @@ class DataLoader():
 
     def __next__(self):
         if self.ipoint < self.min_data:
-            index_batch=self.shuffle_list[self.ipoint:min(self.end,self.ipoint+self.batchsize)]
+            upboundary=min(self.end,self.ipoint+self.batchsize)
+            index_batch=self.shuffle_list[self.ipoint:upboundary]
             coordinates=self.image[index_batch]
             abprop=(device_put(label[index_batch],device=self.device) for label in self.label)
             cell=self.cell[index_batch]
@@ -50,10 +51,10 @@ class DataLoader():
             neighlist=[]
             shiftimage=[]
             coor=[]
-            for i,cart in enumerate(coordinates):
+            for i,icart in enumerate(coordinates):
                 icell=cell[i]
                 getneigh.init_neigh(self.cutoff,self.dier,icell)
-                cart,atomindex,shifts,scutnum=getneigh.get_neigh(cart,self.maxneigh)
+                cart,atomindex,shifts,scutnum=getneigh.get_neigh(icart,self.maxneigh)
                 getneigh.deallocate_all()
                 neighlist.append(atomindex)
                 shiftimage.append(shifts)

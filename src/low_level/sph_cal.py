@@ -22,11 +22,12 @@ class SPH_CAL():
         self.yr=np.empty((self.max_l,self.max_l),dtype=np.int64)
         self.yr_rev=np.empty((self.max_l,self.max_l),dtype=np.int64)
         num_lm=int((self.max_l+1)*self.max_l/2)
-        self.coeff_a=np.empty(num_lm,dtype=Dtype)
-        self.coeff_b=np.empty(num_lm,dtype=Dtype)
+        coeff_a=np.empty(num_lm,dtype=Dtype)
+        coeff_b=np.empty(num_lm,dtype=Dtype)
         tmp=jnp.arange(self.max_l)
-        self.prefactor1=-np.sqrt(1.0+0.5/tmp,dtype=Dtype)
-        self.prefactor2=np.sqrt(2.0*tmp+3,dtype=Dtype)
+        self.prefactor1=-jnp.sqrt(1.0+0.5/tmp).astype(Dtype)
+        self.prefactor2=jnp.sqrt(2.0*tmp+3).astype(Dtype)
+        tmp=np.arange(self.max_l)
         ls=tmp*tmp
         for l in range(self.max_l):
             self.pt[l,0:l+1]=tmp[0:l+1]+int(l*(l+1)/2)
@@ -34,14 +35,16 @@ class SPH_CAL():
             self.yr[l,0:l+1]=ls[l]+l+tmp[0:l+1]
             self.yr_rev[l,0:l+1]=ls[l]+l-tmp[0:l+1]
             if l>0.5:
-                self.coeff_a[self.pt[l,0:l]]=np.sqrt((4.0*ls[l]-1)/(ls[l]-ls[0:l]))
-                self.coeff_b[self.pt[l,0:l]]=-np.sqrt((ls[l-1]-ls[0:l])/(4.0*ls[l-1]-1.0))
+                coeff_a[self.pt[l,0:l]]=np.sqrt((4.0*ls[l]-1)/(ls[l]-ls[0:l]))
+                coeff_b[self.pt[l,0:l]]=-np.sqrt((ls[l-1]-ls[0:l])/(4.0*ls[l-1]-1.0))
 
         self.sqrt2_rev=np.sqrt(1/2.0).astype(Dtype)
         self.sqrt2pi_rev=np.sqrt(0.5/np.pi).astype(Dtype)
         self.hc_factor1=np.sqrt(15.0/4.0/np.pi).astype(Dtype)
         self.hc_factor2=np.sqrt(5.0/16.0/np.pi).astype(Dtype)
         self.hc_factor3=np.sqrt(15.0/16.0/np.pi).astype(Dtype)
+        self.coeff_a=jnp.array(coeff_a)
+        self.coeff_b=jnp.array(coeff_b)
 
 
     @partial(jit,static_argnums=0)

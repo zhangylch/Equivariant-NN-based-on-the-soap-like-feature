@@ -20,28 +20,43 @@ max_l=2
 MP_loop=2
 cutoff=5.0
 maxneigh=20
-batchsize_train=32
-batchsize_val=2*batchsize_train
+batchsize_train=1
+batchsize_val=1#2*batchsize_train
 dtype=jnp.float32
 patience_epoch=100
 decay_factor=0.5
-force_table=False
+force_table=True
 if force_table==True:
     nprop=2
 else:
     nprop=1
 device="cpu"
-floder="2.5e3/"
+floder="data/"
 start_lr=2e-3
 end_lr=1e-5
-init_weight=[0.1]
-final_weight=[0.1]
+init_weight=[0.1,5.0]
+final_weight=[0.1,0.1]
 
 #generate the random number 
 key=jrm.PRNGKey(0)
 key=jrm.split(key)
 
 device=jax.devices(device)
+
+
+#Instantiate the dataloader
+train_floder=floder+"train/"
+val_floder=floder+"validation/"
+load_train=dataloader.DataLoader(maxneigh,batchsize_train,cutoff=cutoff,dier=cutoff/2.0,datafloder=train_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device[0])
+load_val=dataloader.DataLoader(maxneigh,batchsize_val,cutoff=cutoff,dier=cutoff/2.0,datafloder=val_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device[0])
+ntrain=[load_train.numpoint]
+nval=[load_val.numpoint]
+if force_table:
+    ntrain.append(jnp.sum(load_train.numatoms)*3)
+    nval.append(jnp.sum(load_val.numatoms)*3)
+ntrain=jnp.array(ntrain,dtype=dtype)
+nval=jnp.array(nval,dtype=dtype)
+
 # generate the random cart to initialize the model.
 cart=jax.device_put(jnp.array((np.random.rand(3,4))).astype(dtype),device[0])
 atomindex=jnp.array([[0,0,1,1,2,3],[1,2,0,3,0,1]],dtype=jnp.int32)
@@ -65,26 +80,13 @@ def get_loss(params,cart,atomindex,shifts,species,label,weight):
         return prediction
     vmapmodel=jax.vmap(predict,in_axes=0,out_axes=0)     
     prediction=vmapmodel(cart,atomindex,shifts,species)
-    #print(prediction)
     lossprop=jnp.array([jnp.sum(jnp.square(iprediction-ilabel)) for iprediction, ilabel in zip(prediction, label)])
     loss=jnp.inner(lossprop,weight)
     return loss,lossprop
 
 loss_grad_fn=jax.value_and_grad(get_loss,has_aux=True)
 
-
-#Instantiate the dataloader
-train_floder=floder+"train/"
-val_floder=floder+"validation/"
-load_train=dataloader.DataLoader(maxneigh,batchsize_train,cutoff=cutoff,dier=cutoff/2.0,datafloder=train_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device[0])
-load_val=dataloader.DataLoader(maxneigh,batchsize_val,cutoff=cutoff,dier=cutoff/2.0,datafloder=val_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device[0])
-ntrain=[load_train.numpoint]
-nval=[load_val.numpoint]
-if force_table:
-    ntrain.append(jnp.sum(load_train.numatoms)*3)
-    nval.append(jnp.sum(load_val.numatoms)*3)
-ntrain=jnp.array(ntrain,dtype=dtype)
-nval=jnp.array(nval,dtype=dtype)
+#jax.config.update("jax_debug_nans", True)
 
 init_weight=device_put(jnp.array(init_weight,dtype=dtype),device=device[0])
 final_weight=device_put(jnp.array(final_weight,dtype=dtype),device=device[0])
