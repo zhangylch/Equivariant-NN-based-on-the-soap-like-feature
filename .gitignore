@@ -4,4 +4,7 @@ __pycache__/
 *.pyf
 cpu_gpu.py
 run/
-
+nn.err
+job-mpi.sh
+1e5-1*
+data/

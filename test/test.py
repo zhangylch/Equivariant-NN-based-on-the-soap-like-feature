@@ -14,7 +14,7 @@ cutoff=5.0
 nwave=2
 max_l=10
 numatom=8
-maxneigh=56
+maxneigh=80
 key=jrm.PRNGKey(0)
 emb_nl=[4,4]
 MP_nl=[16,16]
@@ -34,15 +34,14 @@ getneigh.init_neigh(cutoff,in_dier,cell)
 
 cart,atomindex,shifts,scutnum=getneigh.get_neigh(cart,maxneigh)
 getneigh.deallocate_all()
-atomindex=atomindex[:,0:scutnum]
-shifts=shifts[:,0:scutnum]
 cart=jnp.array(cart)
+#jax.config.update("jax_debug_nans", True)
 
 key=jrm.split(key)
 model=MPNN.MPNN(2,emb_nl,MP_nl,output_nl,key=key[0],nwave=nwave,max_l=max_l,MP_loop=MP_loop,cutoff=cutoff,Dtype=dtype)
 params=model.init(key[0],cart,atomindex,shifts,species)
-#model=jax.value_and_grad(model.apply,argnums=1)
-energy=model.apply(params,cart,atomindex,shifts,species)
+model=jax.jit(model.apply)
+energy=model(params,cart,atomindex,shifts,species)
 print(energy)
 rotate=jnp.zeros((3,3),dtype=dtype)
 ceta=np.pi/4
@@ -52,5 +51,5 @@ rotate=rotate.at[0,0].set(jnp.cos(ceta))
 rotate=rotate.at[0,1].set(jnp.sin(ceta))
 rotate=rotate.at[1,0].set(-jnp.sin(ceta))
 cart=jnp.einsum("ij,jk->ik",rotate,cart)
-energy1=model.apply(params,cart,atomindex,shifts,species)
+energy1=model(params,cart,atomindex,shifts,species)
 print(energy1)
