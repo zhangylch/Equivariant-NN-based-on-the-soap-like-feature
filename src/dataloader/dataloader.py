@@ -11,18 +11,18 @@ class DataLoader():
         read_data.Read_data(datafloder=datafloder,force_table=force_table,Dtype=Dtype)
         self.numpoint=numpoint
         self.maxneigh=maxneigh
-        self.numatoms=jnp.array(numatoms,dtype=jnp.int32)
+        self.numatoms=np.array(numatoms,dtype=jnp.int32)
         self.cutoff=cutoff
         self.dier=dier
         self.Dtype=Dtype
         self.device=device
-        self.image=jnp.array(coor,dtype=Dtype)
+        self.image=np.array(coor,dtype=Dtype)
         if force_table:
-            self.label=[jnp.array(pot,dtype=Dtype),jnp.array(force,dtype=Dtype)]
+            self.label=[np.array(pot,dtype=Dtype),np.array(force,dtype=Dtype)]
         else:   
-            self.label=[jnp.array(pot,dtype=Dtype)]
-        self.cell=jnp.array(cell,dtype=Dtype)
-        self.species=jnp.array(species,dtype=jnp.int32)
+            self.label=[np.array(pot,dtype=Dtype)]
+        self.cell=np.array(cell,dtype=Dtype)
+        self.species=np.array(species,dtype=jnp.int32)
         self.batchsize=batchsize
         self.end=numpoint
         self.shuffle=shuffle               # to control shuffle the data
@@ -45,7 +45,7 @@ class DataLoader():
             upboundary=min(self.end,self.ipoint+self.batchsize)
             index_batch=self.shuffle_list[self.ipoint:upboundary]
             coordinates=self.image[index_batch]
-            abprop=(device_put(label[index_batch],device=self.device) for label in self.label)
+            abprop=(jnp.array(label[index_batch],dtype=self.Dtype) for label in self.label)
             cell=self.cell[index_batch]
             species=self.species[index_batch]
             neighlist=[]
@@ -61,11 +61,11 @@ class DataLoader():
                 coor.append(cart)
             neighlist=jnp.array(neighlist,dtype=jnp.int32)
             shiftimage=jnp.array(shiftimage,dtype=self.Dtype)
+            coor=jnp.array(coor,dtype=self.Dtype)
+            neighlist=jnp.array(neighlist,dtype=jnp.int32)
+            shiftimage=jnp.array(shiftimage,dtype=self.Dtype)
+            species=jnp.array(species,dtype=jnp.int32)
             self.ipoint+=self.batchsize
-            coor=device_put(jnp.array(coor,dtype=self.Dtype),device=self.device)
-            neighlist=device_put(neighlist,device=self.device)
-            shiftimage=device_put(shiftimage,device=self.device)
-            species=device_put(species,device=self.device)
             return coor,neighlist,shiftimage,species,abprop
         else:
             # if shuffle==True: shuffle the data 

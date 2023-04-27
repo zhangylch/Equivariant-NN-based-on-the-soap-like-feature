@@ -19,9 +19,9 @@ nwave=8
 max_l=2
 MP_loop=2
 cutoff=5.0
-maxneigh=20
-batchsize_train=1
-batchsize_val=1#2*batchsize_train
+maxneigh=16000
+batchsize_train=256
+batchsize_val=2*batchsize_train
 dtype=jnp.float32
 patience_epoch=100
 decay_factor=0.5
@@ -30,8 +30,8 @@ if force_table==True:
     nprop=2
 else:
     nprop=1
-device="cpu"
-floder="data/"
+device="gpu"
+floder="../data/H2O/"
 start_lr=2e-3
 end_lr=1e-5
 init_weight=[0.1,5.0]
@@ -58,10 +58,10 @@ ntrain=jnp.array(ntrain,dtype=dtype)
 nval=jnp.array(nval,dtype=dtype)
 
 # generate the random cart to initialize the model.
-cart=jax.device_put(jnp.array((np.random.rand(3,4))).astype(dtype),device[0])
+cart=jnp.array((np.random.rand(3,4))).astype(dtype)
 atomindex=jnp.array([[0,0,1,1,2,3],[1,2,0,3,0,1]],dtype=jnp.int32)
-shifts=jax.device_put(jnp.zeros((3,6),dtype=dtype),device[0])
-species=jax.device_put(jnp.array([12,1,1,1]).reshape(-1,1),device[0])
+shifts=jnp.zeros((3,6),dtype=dtype)
+species=jnp.array([12,1,1,1]).reshape(-1,1)
 model=MPNN.MPNN(emb_nl,MP_nl,output_nl,key=key[0],nwave=nwave,max_l=max_l,MP_loop=MP_loop,cutoff=cutoff,Dtype=dtype)
 params=model.init(key[0],cart,atomindex,shifts,species)
 if force_table:
@@ -88,8 +88,8 @@ loss_grad_fn=jax.value_and_grad(get_loss,has_aux=True)
 
 #jax.config.update("jax_debug_nans", True)
 
-init_weight=device_put(jnp.array(init_weight,dtype=dtype),device=device[0])
-final_weight=device_put(jnp.array(final_weight,dtype=dtype),device=device[0])
+init_weight=jnp.array(init_weight,dtype=dtype)
+final_weight=jnp.array(final_weight,dtype=dtype)
 bestloss=1e20
 epoch=0
 weight=init_weight
@@ -113,6 +113,7 @@ while True:
             (loss,lossprop),grads=loss_grad_fn(params,cart,atomindex,shifts,species,label,weight)
             updates,opt_state=optim.update(grads,opt_state)
             params=optax.apply_updates(params,updates)
+            print(loss)
             loss_train+=loss
             lossprop_train+=lossprop
          
@@ -140,6 +141,7 @@ while True:
         for error in lossprop_val:
             ferr.write("{:10e} ".format(error))
         ferr.write(" \n")
+        ferr.flush()
     lr=lr*decay_factor
     # update the learning rate but keep track of the optim state, so we do not reinitialize the state of optim
     optim=optax.adam(learning_rate=lr)

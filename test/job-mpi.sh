@@ -13,11 +13,12 @@ echo $SLURM_JOB_NODELIST
 # Your conda environment
 export OMP_NUM_THREADS=8
 
-module add cuda/11.0
-module add cudnn/8.1.1.33_CUDA11.0
+#module add cuda/11.0
+#module add cudnn/8.1.1.33_CUDA11.0
+module add gcc/9.3
 
 #ATTENTION! HERE MUSTT BE ONE LINE,OR ERROR!
 source ~/.bashrc
 conda activate flax-gpu
 cd $PWD
-sleep 10000
+python3 ../
