@@ -10,18 +10,27 @@ class DataLoader():
         numpoint,coor,cell,species,numatoms,pot,force =  \
         read_data.Read_data(datafloder=datafloder,force_table=force_table,Dtype=Dtype)
         self.numpoint=numpoint
-        self.maxneigh=maxneigh
         self.numatoms=np.array(numatoms,dtype=jnp.int32)
-        self.cutoff=cutoff
-        self.dier=dier
         self.Dtype=Dtype
         self.device=device
-        self.image=np.array(coor,dtype=Dtype)
+        neighlist=[]
+        shiftimage=[]
+        coordinates=[]
+        for i,icart in enumerate(coor):
+            icell=cell[i]
+            getneigh.init_neigh(cutoff,dier,icell)
+            cart,atomindex,shifts,scutnum=getneigh.get_neigh(icart,maxneigh)
+            getneigh.deallocate_all()
+            neighlist.append(atomindex)
+            shiftimage.append(shifts)
+            coordinates.append(cart)
+        self.image=np.array(coordinates,dtype=Dtype)
+        self.neighlist=np.array(neighlist,dtype=jnp.int32)
+        self.shiftimage=np.array(shiftimage,dtype=Dtype)
         if force_table:
             self.label=[np.array(pot,dtype=Dtype),np.array(force,dtype=Dtype)]
         else:   
             self.label=[np.array(pot,dtype=Dtype)]
-        self.cell=np.array(cell,dtype=Dtype)
         self.species=np.array(species,dtype=jnp.int32)
         self.batchsize=batchsize
         self.end=numpoint
@@ -44,27 +53,11 @@ class DataLoader():
         if self.ipoint < self.min_data:
             upboundary=min(self.end,self.ipoint+self.batchsize)
             index_batch=self.shuffle_list[self.ipoint:upboundary]
-            coordinates=self.image[index_batch]
-            abprop=(jnp.array(label[index_batch],dtype=self.Dtype) for label in self.label)
-            cell=self.cell[index_batch]
+            coor=self.image[index_batch]
+            shiftimage=self.shiftimage[index_batch]
+            neighlist=self.neighlist[index_batch]
+            abprop=(label[index_batch] for label in self.label)
             species=self.species[index_batch]
-            neighlist=[]
-            shiftimage=[]
-            coor=[]
-            for i,icart in enumerate(coordinates):
-                icell=cell[i]
-                getneigh.init_neigh(self.cutoff,self.dier,icell)
-                cart,atomindex,shifts,scutnum=getneigh.get_neigh(icart,self.maxneigh)
-                getneigh.deallocate_all()
-                neighlist.append(atomindex)
-                shiftimage.append(shifts)
-                coor.append(cart)
-            neighlist=jnp.array(neighlist,dtype=jnp.int32)
-            shiftimage=jnp.array(shiftimage,dtype=self.Dtype)
-            coor=jnp.array(coor,dtype=self.Dtype)
-            neighlist=jnp.array(neighlist,dtype=jnp.int32)
-            shiftimage=jnp.array(shiftimage,dtype=self.Dtype)
-            species=jnp.array(species,dtype=jnp.int32)
             self.ipoint+=self.batchsize
             return coor,neighlist,shiftimage,species,abprop
         else:

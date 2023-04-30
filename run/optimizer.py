@@ -6,10 +6,12 @@ from jax import device_put
 from flax import linen as nn
 import src.model.MPNN as MPNN
 import src.dataloader.dataloader as dataloader
+import src.dataloader.cpu_gpu as torch_load
 import fortran.getneigh as getneigh
 import optax
 import time
 from flax import serialization
+import torch
 
 #define the parameters
 emb_nl=[16,16]
@@ -26,11 +28,12 @@ dtype=jnp.float32
 patience_epoch=100
 decay_factor=0.5
 force_table=True
+queue_size=5
 if force_table==True:
     nprop=2
 else:
     nprop=1
-device="gpu"
+cpu_gpu="gpu"
 floder="../data/H2O/"
 start_lr=2e-3
 end_lr=1e-5
@@ -41,19 +44,26 @@ final_weight=[0.1,0.1]
 key=jrm.PRNGKey(0)
 key=jrm.split(key)
 
-device=jax.devices(device)
-
+device=jax.devices(cpu_gpu)
+if cpu_gpu=="gpu":
+    torch_device= torch.device("cuda")
+else:
+    torch_device= torch.device("cpu")
 
 #Instantiate the dataloader
 train_floder=floder+"train/"
 val_floder=floder+"validation/"
 load_train=dataloader.DataLoader(maxneigh,batchsize_train,cutoff=cutoff,dier=cutoff/2.0,datafloder=train_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device[0])
-load_val=dataloader.DataLoader(maxneigh,batchsize_val,cutoff=cutoff,dier=cutoff/2.0,datafloder=val_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device[0])
+load_val=dataloader.DataLoader(maxneigh,batchsize_val,cutoff=cutoff,dier=cutoff/2.0,datafloder=val_floder,force_table=force_table,min_data_len=None,shuffle=False,Dtype=dtype,device=device[0])
 ntrain=[load_train.numpoint]
 nval=[load_val.numpoint]
 if force_table:
     ntrain.append(jnp.sum(load_train.numatoms)*3)
     nval.append(jnp.sum(load_val.numatoms)*3)
+load_train=torch_load.CudaDataLoader(load_train, torch_device, queue_size=queue_size)
+load_val=torch_load.CudaDataLoader(load_val, torch_device, queue_size=queue_size)
+
+
 ntrain=jnp.array(ntrain,dtype=dtype)
 nval=jnp.array(nval,dtype=dtype)
 
@@ -113,7 +123,6 @@ while True:
             (loss,lossprop),grads=loss_grad_fn(params,cart,atomindex,shifts,species,label,weight)
             updates,opt_state=optim.update(grads,opt_state)
             params=optax.apply_updates(params,updates)
-            print(loss)
             loss_train+=loss
             lossprop_train+=lossprop
          

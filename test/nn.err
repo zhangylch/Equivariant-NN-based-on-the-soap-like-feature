@@ -1,10 +1,16 @@
 Equivariant MPNN package based on three-body descriptors 
-2023-04-28-05_01_13 
-Epoch=      1,  lr= 2.000000e-03  train: 2.998605e+04 2.564815e+00  validation: 2.986747e+04 1.230363e+01  
-Epoch=      2,  lr= 2.000000e-03  train: 2.979183e+04 6.216274e+00  validation: 2.952981e+04 2.941764e+01  
-Epoch=      3,  lr= 2.000000e-03  train: 2.933860e+04 1.550436e+01  validation: 2.875987e+04 3.246155e+01  
-Epoch=      4,  lr= 2.000000e-03  train: 2.859168e+04 3.000198e+01  validation: 2.808385e+04 3.607735e+02  
-Epoch=      5,  lr= 2.000000e-03  train: 2.810805e+04 6.015458e+01  validation: 2.810951e+04 6.561925e+01  
-Epoch=      6,  lr= 2.000000e-03  train: 2.823496e+04 3.200302e+01  validation: 2.823537e+04 7.274390e+01  
-Epoch=      7,  lr= 2.000000e-03  train: 2.821691e+04 2.418698e+01  validation: 2.801592e+04 8.086781e+01  
-Epoch=      8,  lr= 2.000000e-03  train: 2.793093e+04 2.430254e+01  validation: 2.753551e+04 4.433622e+01  
+2023-04-28-18_18_49 
+Epoch=      1,  lr= 2.000000e-03  train: 2.998565e+04 2.613716e+00  validation: 2.986906e+04 8.415445e+00  
+Epoch=      2,  lr= 2.000000e-03  train: 2.978358e+04 7.177559e+00  validation: 2.951871e+04 2.000075e+01  
+Epoch=      3,  lr= 2.000000e-03  train: 2.931793e+04 1.598851e+01  validation: 2.870865e+04 2.563707e+01  
+Epoch=      4,  lr= 2.000000e-03  train: 2.847857e+04 3.114156e+01  validation: 2.789843e+04 2.926437e+01  
+Epoch=      5,  lr= 2.000000e-03  train: 2.759867e+04 3.462922e+01  validation: 2.644915e+04 1.735998e+02  
+Epoch=      6,  lr= 2.000000e-03  train: 2.608407e+04 5.750156e+01  validation: 2.549274e+04 4.539833e+01  
+Epoch=      7,  lr= 2.000000e-03  train: 2.562755e+04 4.421437e+01  validation: 2.490432e+04 5.231621e+01  
+Epoch=      8,  lr= 2.000000e-03  train: 2.474751e+04 4.720525e+01  validation: 2.326953e+04 6.491975e+01  
+Epoch=      9,  lr= 2.000000e-03  train: 2.291812e+04 5.346209e+01  validation: 2.065732e+04 6.259903e+01  
+Epoch=     10,  lr= 2.000000e-03  train: 2.009260e+04 7.278622e+01  validation: 1.830849e+04 6.785091e+01  
+Epoch=     11,  lr= 2.000000e-03  train: 1.891562e+04 6.706580e+01  validation: 1.726080e+04 6.908068e+01  
+Epoch=     12,  lr= 2.000000e-03  train: 1.783779e+04 5.172835e+01  validation: 1.476367e+04 3.062098e+02  
+Epoch=     13,  lr= 2.000000e-03  train: 1.518027e+04 5.457111e+01  validation: 1.072073e+04 7.789091e+01  
+Epoch=     14,  lr= 2.000000e-03  train: 1.170434e+04 5.818080e+01  validation: 7.485279e+03 6.665455e+01  
