@@ -11,6 +11,7 @@ from src.low_level import density, MLP, sph_cal, radial
 from flax.core import freeze
 
 class MPNN(nn.Module):
+    effect_num: int
     emb_nl: Sequence[int]
     MP_nl: Sequence[int]
     output_nl: Sequence[int]
@@ -66,15 +67,19 @@ class MPNN(nn.Module):
         coor=cart[:,atomindex[1]]-cart[:,atomindex[0]]+shifts
         distances=jnp.linalg.norm(coor,axis=0)
         radial=self.radial_func.apply(self.radial_params,distances)
+        radial_cutoff=self.cutoff_func(distances)
         sph=self.sph_cal(coor/self.cutoff)
         MP_sph=jnp.zeros((cart.shape[0],sph.shape[0],self.nwave),dtype=cart.dtype)
         density=jnp.zeros((cart.shape[1],self.r_max_l,self.nwave),dtype=cart.dtype)
         coefficients=self.emb_nn.apply(self.emb_params,species)
         for inn, nn in enumerate(self.MPNN_list):
-            density,MP_sph=self.density(sph,radial,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)
+            density,MP_sph=self.density(sph,radial,radial_cutoff,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)
             coefficients=nn.apply(self.MP_params_list[inn],density.reshape(-1,self.norbit))
-        density,MP_sph=self.density(sph,radial,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)
-        output=jnp.sum(self.outnn.apply(self.out_params,density.reshape(-1,self.norbit)))
-        return output
+        density,MP_sph=self.density(sph,radial,radial_cutoff,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)
+        output=self.outnn.apply(self.out_params,density.reshape(-1,self.norbit))
+        return output.reshape(-1)[0:self.effect_num]
 
 
+    def cutoff_func(self,distances):
+        tmp=(jnp.cos(distances/self.cutoff*jnp.pi)+1.0)/2.0
+        return tmp*tmp*tmp  # here to use the a^3 to keep the smooth of hessian functtion
