@@ -1,8 +1,7 @@
-__pycache__/
-*.so 
-*.pyf
-cpu_gpu.py
-nn.err
-job-mpi.sh
-1e5-1*
-data/
+**/__pycache__/
+**/*.so 
+**/*.pyf
+**/nn.err
+**/job-mpi.sh
+**/1e5-1*
+**/data/
