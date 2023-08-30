@@ -7,7 +7,6 @@ import jax.random as jrm
 import scipy
 
 class SPH_CAL():
-    def __init__(self,max_l=3,Dtype=jnp.dtype("float32")):
     '''
     This module perform the calculation of spherical harmonic expansion based on the derivation in this work (https://arxiv.org/abs/1410.1748).
     max_l: int32/int64
@@ -16,7 +15,7 @@ class SPH_CAL():
     Dtype: jnp.float32/jnp.float64
          represents the datatype in this module. Example: jnp.float32
     '''
-        #  form [0,max_L]
+    def __init__(self,max_l=3,Dtype=jnp.dtype("float32")):
         if max_l<1: raise ValueError("The angular momentum must be greater than or equal to 1. Or the angular momentum is lack of angular information, the calculation of the sph is meanless.")
         self.max_l=max_l+1
         self.Dtype=Dtype
