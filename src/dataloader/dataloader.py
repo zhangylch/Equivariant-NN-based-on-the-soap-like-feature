@@ -6,7 +6,33 @@ import src.dataloader.read_data as read_data
 import fortran.getneigh as getneigh
 
 class DataLoader():
-    def __init__(self,maxneigh,batchsize,cutoff=5.0,dier=2.5,datafloder="train/",force_table=True,min_data_len=None,shuffle=True,Dtype=jnp.float32,device=jax.devices("cpu")):
+    '''
+    This module are responsible for reading data from file, devide the total data into each batch and perform the calculation of neighbour list.
+    maxneigh: int32/int64
+        is used to define an array to hold the list of neighboring atoms. Therefore, it must be greater than the sum of the number of neighboring atoms of all central atoms.
+
+    batchsize: int32/int64
+
+    cutoff: float32/float64
+        represents the cutoff radius for building the neighlist. Example: 4.0
+
+    dier: float32/float64
+        represents the length of cut box used in the cell-linked list algorithm. Typical value is equal to cutoff or half of cutoff.
+
+    datafolder: string
+        stores the path where save the dataset.
+
+    force_table: True/False
+        indicates if the forces are included in the training.
+
+    shuffle: True/False
+        indicates if shuffle the data in each epoch.
+
+    Dtype: jnp.float32/jnp.float64
+
+    device: jax.devices("cpu")/jax.devices("cuda")
+    '''
+    def __init__(self,maxneigh,batchsize,cutoff=5.0,dier=2.5,datafolder="train/",force_table=True,shuffle=True,Dtype=jnp.float32,device=jax.devices("cpu")):
         numpoint,coor,cell,species,numatoms,pot,force =  \
         read_data.Read_data(datafloder=datafloder,force_table=force_table,Dtype=Dtype)
         self.numpoint=numpoint
@@ -39,11 +65,7 @@ class DataLoader():
             self.shuffle_list=np.random.permutation(self.end)
         else:
             self.shuffle_list=np.arange(self.end)
-        if not min_data_len:
-            self.min_data=self.end
-        else:
-            self.min_data=min_data_len
-        self.length=int(np.ceil(self.min_data/self.batchsize))
+        self.length=int(np.ceil(self.end/self.batchsize))
       
     def __iter__(self):
         self.ipoint = 0

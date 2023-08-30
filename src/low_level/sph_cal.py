@@ -8,12 +8,14 @@ import scipy
 
 class SPH_CAL():
     def __init__(self,max_l=3,Dtype=jnp.dtype("float32")):
-        '''
-         max_l: maximum L for angular momentum
-         device: cpu/gpu
-         dtype:  torch.float32/torch.float64
+    '''
+    This module perform the calculation of spherical harmonic expansion based on the derivation in this work (https://arxiv.org/abs/1410.1748).
+    max_l: int32/int64
+         represents the maximal angular quantum numebr for the evaluation of spherical harmonic. Example: 2
 
-        '''
+    Dtype: jnp.float32/jnp.float64
+         represents the datatype in this module. Example: jnp.float32
+    '''
         #  form [0,max_L]
         if max_l<1: raise ValueError("The angular momentum must be greater than or equal to 1. Or the angular momentum is lack of angular information, the calculation of the sph is meanless.")
         self.max_l=max_l+1
@@ -50,7 +52,8 @@ class SPH_CAL():
     @partial(jit,static_argnums=0)
     def __call__(self,cart):
         '''
-        cart: Cartesian coordinates with the dimension (3,n,batch) n is the max number of neigbbors and the rest complemented with 0. Here, we do not do the lod of tensor to keep the dimension of batch for the convenient calculation of sample to sample gradients.
+        cart: jnp.float32/jnp.float64.
+            represents the cartesian coordinates of systems with its shape [3,...]. 
         '''
         distances=jnp.linalg.norm(cart,axis=0)  # to convert to the dimension (n,batchsize)
         d_sq=distances*distances

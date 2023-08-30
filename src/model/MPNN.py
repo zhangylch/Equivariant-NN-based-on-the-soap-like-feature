@@ -7,14 +7,46 @@ import jax.random as jrm
 from jax.numpy import dtype,array
 import flax.linen as nn
 from typing import Sequence
-from src.low_level import density, MLP, sph_cal, radial
+from src.low_level import MLP, sph_cal
 from flax.core import freeze
 
+
+
 class MPNN(nn.Module):
+
+    '''
+    This MPNN module is designed for the calculation of equivariant message passing neural network for both periodic and molecular systems.
+    Not only the invairant feature but also the eqivariant feature (sperical harmonic) are passed and progressively refined. 
+    parameters:
+
+    emb_nl: list
+        defines the nn structure (only the hidden layers) of embedding neural network. Examples: [16,16]
+
+    MP_nl: list
+        defines the nn structure (only the hidden layers) used in each step except the last step of MPNN. Examples: [32,32]
+
+    output_nl: list
+        defines the nn structures of the last step of the MPNN (only the hidden layer), which will output the desired quantities, such as atomic energies or electron wave functions. Example: [64,64]
+
+    nwave: int32/int64
+         represents the number of gaussian radial functions. Example: 8
+
+    max_l: int32/int64
+         represents the maximal angular quantum numebr for the evaluation of spherical harmonic. Example: 2
+
+    MP_loop: int32/int64
+         represents the number of passing message in MPNN. Example: 3
+
+    cutoff: float32/float64
+         represents the cutoff radius for evaluating the local descriptors. Example: 4.0
+
+    Dtype: jnp.float32/jnp.float64
+         represents the datatype in this module. Example: jnp.float32
+    '''  
+
     emb_nl: Sequence[int]
     MP_nl: Sequence[int]
     output_nl: Sequence[int]
-    key: array=jrm.PRNGKey(0)
     nwave: int=8
     max_l: int=2
     MP_loop: int=2
@@ -26,19 +58,13 @@ class MPNN(nn.Module):
         self.r_max_l=self.max_l+1
         self.norbit=self.nwave*self.r_max_l
 
-        key=jrm.split(self.key,num=3)
-        # define the class for the calculation of radial function
-        self.radial_func = radial.radial_func(self.nwave,self.cutoff,Dtype=self.Dtype)
-        self.radial_params = self.param("radial_params",self.radial_func.init,(jrm.uniform(key[1],(10,))))
-
         # define the class for the calculation of spherical harmonic expansion
         self.sph_cal=sph_cal.SPH_CAL(max_l=self.max_l,Dtype=self.Dtype)
         # the first time is slow for the compile of the jit
         self.sph_cal(jnp.ones(3))
         
         # define the embedded layer used to convert the atomin number of a coefficients
-        key=jrm.split(key[-1])
-        self.emb_nn=MLP.MLP(self.emb_nl,self.nwave)
+        self.emb_nn=MLP.MLP(self.emb_nl,self.nwave*3)
         self.emb_params=self.param("emb_params",self.emb_nn.init,(jnp.ones(1)))
 
         # used for the convenient summation over the same l
@@ -46,14 +72,10 @@ class MPNN(nn.Module):
         for l in range(1,self.r_max_l):
             self.index_l=jnp.hstack((self.index_l,jnp.ones((2*l+1,),dtype=jnp.int32)*l))
 
-        # define the density calculation
-        self.density=density.density
-
         # Instantiate the NN class for the MPNN
         # create tge model for each iterations in MPNN
         self.MPNN_list=[MLP.MLP(self.MP_nl,self.nwave) for iMP_loop in range(self.MP_loop)]
         self.outnn=MLP.MLP(self.output_nl,1)
-        key=jrm.split(key[-1],num=self.MP_loop+2)  # The 3 more key is for the final nn, embedded nn and the seed to generate next key.
         random_x=jnp.ones(self.norbit)
         # initialize the model 
         self.MP_params_list=[self.param("MPNN_"+str(iMP_loop)+"_params",self.MPNN_list[iMP_loop].init,(random_x)) for iMP_loop in range(self.MP_loop)]
@@ -63,22 +85,62 @@ class MPNN(nn.Module):
        
 
     def __call__(self,cart,atomindex,shifts,species):
+        '''
+        cart: jnp.float32/jnp.float64.
+            represents the cartesian coordinates of systems with dimension 3*Natom. Natom is the number of atoms in the system.
+
+        atomindx: jnp.int64/inp.int32
+            stores the index of centeral atoms and theirs corresponding neighbor atoms with the dimension 2*Neigh. Neigh is the number of total neighbor atoms in the system.
+
+        shifts: jnp.float32/jnp.float64
+            stores the offset corresponding to each neighbor atoms with the dimension Neigh*3.
+
+        species: jnp.float32/jnp.float64
+            represents the atomic number of each center atom with the dimension Natom.
+        '''
         coor=cart[:,atomindex[1]]-cart[:,atomindex[0]]+shifts
         distances=jnp.linalg.norm(coor,axis=0)
-        radial=self.radial_func.apply(self.radial_params,distances)
+        emb_coeff=self.emb_nn.apply(self.emb_params,species)
+        expand_coeff=emb_coeff[atomindex[1]]
+        coefficients=expand_coeff[:,:nwave]
+        alpha=expand_coeff[:,nwave:2*nwave]
+        center=expand_coeff[:,2*nwave:]
+        radial=self.gaussian(distances,alpha,center)
         radial_cutoff=self.cutoff_func(distances)
         sph=self.sph_cal(coor/self.cutoff)
         MP_sph=jnp.zeros((cart.shape[0],sph.shape[0],self.nwave),dtype=cart.dtype)
         density=jnp.zeros((cart.shape[1],self.r_max_l,self.nwave),dtype=cart.dtype)
-        coefficients=self.emb_nn.apply(self.emb_params,species)
         for inn, nn in enumerate(self.MPNN_list):
-            density,MP_sph=self.density(sph,radial,radial_cutoff,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)
-            coefficients=nn.apply(self.MP_params_list[inn],density.reshape(-1,self.norbit))
-        density,MP_sph=self.density(sph,radial,radial_cutoff,self.index_l,atomindex[1],atomindex[0],coefficients,MP_sph,density)
+            equi_feature = jnp.einsum("i,ij,ij,ij,ki -> ikj",radial_cutoff,radial,coefficients,sph)
+            density,MP_sph = self.density(equi_feature,radial_cutoff,atomindex[1],atomindex[0],MP_sph,density=density)
+            coefficients = nn.apply(self.MP_params_list[inn],density.reshape(-1,self.norbit))[atomindex[1]]
+        density,MP_sph=self.density(equi_feature,radial_cutoff,atomindex[1],atomindex[0],MP_sph,density=density)
         output=jnp.sum(self.outnn.apply(self.out_params,density.reshape(-1,self.norbit)))
         return output
 
-
+    def gaussian(self,distances,alpha,center):
+        '''
+        gaussian radial functions
+        '''
+        shift_distances=distances[:,None]-center
+        gaussian=jnp.exp(-alpha*(shift_distances*shift_distances))
+        return gaussian
+    
     def cutoff_func(self,distances):
+        '''
+        cutoff function:
+        '''
         tmp=(jnp.cos(distances/self.cutoff*jnp.pi)+1.0)/2.0
         return tmp*tmp*tmp  # here to use the a^3 to keep the smooth of hessian functtion
+
+    def density(self,equi_feature,radial_cutoff,index_neigh,index_center,MP_sph,density=jnp.zeros((0))):
+        '''
+        The method is used to calculate the density from the neigh euqivariant feature.
+        '''
+        r_sph=jnp.einsum("ijk,i -> ijk",MP_sph[index_neigh],radial_cutoff)+equi_feature # out of bound will be ingored
+        sum_sph=jnp.zeros_like(MP_sph)
+        sum_sph=sum_sph.at[index_center].add(r_sph)
+        contract_sph=jnp.square(sum_sph)
+        density=density.at[:,self.index_l].add(contract_sph)
+        return density,sum_sph
+

@@ -21,5 +21,4 @@ module add gcc/9.3
 source ~/.bashrc
 conda activate flax-gpu
 cd $PWD
-#python3 ../  >out
-sleep 10000
+python3 ../run/optimizer.py

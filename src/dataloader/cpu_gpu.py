@@ -8,7 +8,17 @@ import jax.numpy as jnp
 import numpy as np
 
 class CudaDataLoader:
-    """ 异步预先将数据从CPU加载到GPU中 """
+    '''
+    Loading data from cpu to gpu asynchronously
+    loader: function or method of module
+        represents the function or method to generate the required data.
+
+    device: torch.device("cuda") or torch.device("cpu")
+        Here, the device is used to open a torch.cuda.stream
+
+    queue_size: int32/int64
+        represents the maximal number of batch data in the cuda stream.
+    '''
 
     def __init__(self, loader, device, queue_size=0):
         self.device = device
@@ -22,7 +32,9 @@ class CudaDataLoader:
         self.length=self.loader.length
 
     def load_loop(self):
-        """ 不断的将cuda数据加载到队列里 """
+        '''
+        loading cuda data into queue.
+        '''
         # The loop that will load into the queue in the background
         while True:
             with torch.cuda.stream(self.load_stream):
@@ -30,7 +42,9 @@ class CudaDataLoader:
                     self.queue.put(self.load_instance(sample))
 
     def load_instance(self, sample):
-        """ 将batch数据从CPU加载到GPU中 """
+        '''
+        loading data from cpu to gpu
+        '''
         if type(sample) is np.ndarray:
             return jnp.array(sample)
         else:
@@ -41,17 +55,14 @@ class CudaDataLoader:
         return self
 
     def __next__(self):
-        # 加载线程挂了
         if not self.worker.is_alive() and self.queue.empty():
             self.idx = 0
             self.queue.join()
             self.worker.join()
             raise StopIteration
-        # 一个epoch加载完了
         elif self.idx >= self.length:
             self.idx = 0
             raise StopIteration
-        # 下一个batch
         else:
             out = self.queue.get()
             self.queue.task_done()

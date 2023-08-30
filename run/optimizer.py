@@ -33,8 +33,8 @@ if force_table==True:
     nprop=2
 else:
     nprop=1
-cpu_gpu="gpu"
-floder="../data/H2O/"
+cpu_gpu="cpu"
+folder="data/"
 start_lr=2e-3
 end_lr=1e-5
 init_weight=[0.1,5.0]
@@ -51,18 +51,18 @@ else:
     torch_device= torch.device("cpu")
 
 #Instantiate the dataloader
-train_floder=floder+"train/"
-val_floder=floder+"validation/"
-load_train=dataloader.DataLoader(maxneigh,batchsize_train,cutoff=cutoff,dier=cutoff/2.0,datafloder=train_floder,force_table=force_table,min_data_len=None,shuffle=True,Dtype=dtype,device=device[0])
-load_val=dataloader.DataLoader(maxneigh,batchsize_val,cutoff=cutoff,dier=cutoff/2.0,datafloder=val_floder,force_table=force_table,min_data_len=None,shuffle=False,Dtype=dtype,device=device[0])
+train_folder=folder+"train/"
+val_folder=folder+"validation/"
+load_train=dataloader.DataLoader(maxneigh,batchsize_train,cutoff=cutoff,dier=cutoff/2.0,datafolder=train_folder,force_table=force_table,shuffle=True,Dtype=dtype,device=device[0])
+load_val=dataloader.DataLoader(maxneigh,batchsize_val,cutoff=cutoff,dier=cutoff/2.0,datafolder=val_folder,force_table=force_table,shuffle=False,Dtype=dtype,device=device[0])
 ntrain=[load_train.numpoint]
 nval=[load_val.numpoint]
 if force_table:
     ntrain.append(jnp.sum(load_train.numatoms)*3)
     nval.append(jnp.sum(load_val.numatoms)*3)
-load_train=torch_load.CudaDataLoader(load_train, torch_device, queue_size=queue_size)
-load_val=torch_load.CudaDataLoader(load_val, torch_device, queue_size=queue_size)
-
+if cpu_gpu=="gpu":
+    load_train=torch_load.CudaDataLoader(load_train, torch_device, queue_size=queue_size)
+    load_val=torch_load.CudaDataLoader(load_val, torch_device, queue_size=queue_size)
 
 ntrain=jnp.array(ntrain,dtype=dtype)
 nval=jnp.array(nval,dtype=dtype)
@@ -72,7 +72,7 @@ cart=jnp.array((np.random.rand(3,4))).astype(dtype)
 atomindex=jnp.array([[0,0,1,1,2,3],[1,2,0,3,0,1]],dtype=jnp.int32)
 shifts=jnp.zeros((3,6),dtype=dtype)
 species=jnp.array([12,1,1,1]).reshape(-1,1)
-model=MPNN.MPNN(emb_nl,MP_nl,output_nl,key=key[0],nwave=nwave,max_l=max_l,MP_loop=MP_loop,cutoff=cutoff,Dtype=dtype)
+model=MPNN.MPNN(emb_nl,MP_nl,output_nl,nwave=nwave,max_l=max_l,MP_loop=MP_loop,cutoff=cutoff,Dtype=dtype)
 params=model.init(key[0],cart,atomindex,shifts,species)
 if force_table:
     model=jax.value_and_grad(model.apply,argnums=1)
