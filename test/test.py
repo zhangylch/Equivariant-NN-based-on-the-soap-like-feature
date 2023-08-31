@@ -39,7 +39,7 @@ cart=jnp.array(cart)
 
 model=MPNN.MPNN(emb_nl,MP_nl,output_nl,nwave=nwave,max_l=max_l,MP_loop=MP_loop,cutoff=cutoff,Dtype=dtype)
 params=model.init(key,cart,atomindex,shifts,species)
-model=jax.jit(jax.value_and_grad(model.apply,argnums=1))
+model=jax.jit(model.apply)
 energy=model(params,cart,atomindex,shifts,species)
 print(energy)
 rotate=jnp.zeros((3,3),dtype=dtype)

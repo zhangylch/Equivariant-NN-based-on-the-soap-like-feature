@@ -115,8 +115,8 @@ class MPNN(nn.Module):
             density,MP_sph = self.density(equi_feature,radial_cutoff,atomindex[1],atomindex[0],MP_sph,density=density)
             coefficients = nn.apply(self.MP_params_list[inn],density.reshape(-1,self.norbit))[atomindex[1]]
         density,MP_sph=self.density(equi_feature,radial_cutoff,atomindex[1],atomindex[0],MP_sph,density=density)
-        output=jnp.sum(self.outnn.apply(self.out_params,density.reshape(-1,self.norbit)))
-        return output
+        output=self.outnn.apply(self.out_params,density.reshape(-1,self.norbit))
+        return output.reshape(-1)
 
     def density(self,equi_feature,radial_cutoff,index_neigh,index_center,MP_sph,density=jnp.zeros((0))):
         '''
