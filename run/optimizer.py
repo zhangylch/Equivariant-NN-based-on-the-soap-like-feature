@@ -2,7 +2,6 @@ import jax
 import numpy as np
 import jax.numpy as jnp
 import jax.random as jrm
-from jax import device_put
 from flax import linen as nn
 import src.model.MPNN as MPNN
 import src.dataloader.dataloader as dataloader

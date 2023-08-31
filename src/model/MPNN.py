@@ -102,28 +102,39 @@ class MPNN(nn.Module):
         distances=jnp.linalg.norm(coor,axis=0)
         emb_coeff=self.emb_nn.apply(self.emb_params,species)
         expand_coeff=emb_coeff[atomindex[1]]
-        coefficients=expand_coeff[:,:nwave]
-        alpha=expand_coeff[:,nwave:2*nwave]
-        center=expand_coeff[:,2*nwave:]
+        coefficients=expand_coeff[:,:self.nwave]
+        alpha=expand_coeff[:,self.nwave:2*self.nwave]
+        center=expand_coeff[:,2*self.nwave:]
         radial=self.gaussian(distances,alpha,center)
         radial_cutoff=self.cutoff_func(distances)
         sph=self.sph_cal(coor/self.cutoff)
         MP_sph=jnp.zeros((cart.shape[0],sph.shape[0],self.nwave),dtype=cart.dtype)
         density=jnp.zeros((cart.shape[1],self.r_max_l,self.nwave),dtype=cart.dtype)
         for inn, nn in enumerate(self.MPNN_list):
-            equi_feature = jnp.einsum("i,ij,ij,ij,ki -> ikj",radial_cutoff,radial,coefficients,sph)
+            equi_feature = jnp.einsum("i,ij,ij,ki -> ikj",radial_cutoff,radial,coefficients,sph)
             density,MP_sph = self.density(equi_feature,radial_cutoff,atomindex[1],atomindex[0],MP_sph,density=density)
             coefficients = nn.apply(self.MP_params_list[inn],density.reshape(-1,self.norbit))[atomindex[1]]
         density,MP_sph=self.density(equi_feature,radial_cutoff,atomindex[1],atomindex[0],MP_sph,density=density)
         output=jnp.sum(self.outnn.apply(self.out_params,density.reshape(-1,self.norbit)))
         return output
 
+    def density(self,equi_feature,radial_cutoff,index_neigh,index_center,MP_sph,density=jnp.zeros((0))):
+        '''
+        The method is used to calculate the density from the neigh euqivariant feature.
+        '''
+        r_sph=jnp.einsum("ijk,i -> ijk",MP_sph[index_neigh],radial_cutoff)+equi_feature # out of bound will be ingored
+        sum_sph=jnp.zeros((density.shape[0],MP_sph.shape[1],MP_sph.shape[2]),dtype=self.Dtype)
+        sum_sph=sum_sph.at[index_center].add(r_sph)
+        contract_sph=jnp.square(sum_sph)
+        density=density.at[:,self.index_l].add(contract_sph)
+        return density,sum_sph
+
     def gaussian(self,distances,alpha,center):
         '''
         gaussian radial functions
         '''
-        shift_distances=distances[:,None]-center
-        gaussian=jnp.exp(-alpha*(shift_distances*shift_distances))
+        shift_distances=alpha*(distances[:,None]-center)
+        gaussian=jnp.exp(-shift_distances*shift_distances)
         return gaussian
     
     def cutoff_func(self,distances):
@@ -132,15 +143,4 @@ class MPNN(nn.Module):
         '''
         tmp=(jnp.cos(distances/self.cutoff*jnp.pi)+1.0)/2.0
         return tmp*tmp*tmp  # here to use the a^3 to keep the smooth of hessian functtion
-
-    def density(self,equi_feature,radial_cutoff,index_neigh,index_center,MP_sph,density=jnp.zeros((0))):
-        '''
-        The method is used to calculate the density from the neigh euqivariant feature.
-        '''
-        r_sph=jnp.einsum("ijk,i -> ijk",MP_sph[index_neigh],radial_cutoff)+equi_feature # out of bound will be ingored
-        sum_sph=jnp.zeros_like(MP_sph)
-        sum_sph=sum_sph.at[index_center].add(r_sph)
-        contract_sph=jnp.square(sum_sph)
-        density=density.at[:,self.index_l].add(contract_sph)
-        return density,sum_sph
 
