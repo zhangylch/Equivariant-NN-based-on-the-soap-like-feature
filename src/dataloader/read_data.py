@@ -3,7 +3,7 @@ import jax
 import math
 
 # read system configuration and energy/force
-def Read_data(datafloder="train/",force_table=None,Dtype=np.float32):
+def Read_data(datafolder="train/",force_table=None,Dtype=np.float32):
     coor=[]
     cell=[]
     pot=[] 
@@ -14,7 +14,7 @@ def Read_data(datafloder="train/",force_table=None,Dtype=np.float32):
     if force_table==1:
        force=[]
     numpoint=0
-    fname2=datafloder+'configuration'
+    fname2=datafolder+'configuration'
     icell=np.zeros((3,3),dtype=Dtype)
     with open(fname2,'r') as f1:
         while True:

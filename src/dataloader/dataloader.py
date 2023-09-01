@@ -34,7 +34,7 @@ class DataLoader():
     '''
     def __init__(self,maxneigh,batchsize,cutoff=5.0,dier=2.5,datafolder="train/",force_table=True,shuffle=True,Dtype=jnp.float32,device=jax.devices("cpu")):
         numpoint,coor,cell,species,numatoms,pot,force =  \
-        read_data.Read_data(datafloder=datafloder,force_table=force_table,Dtype=Dtype)
+        read_data.Read_data(datafolder=datafolder,force_table=force_table,Dtype=Dtype)
         self.numpoint=numpoint
         self.numatoms=np.array(numatoms,dtype=jnp.int32)
         self.Dtype=Dtype
@@ -72,7 +72,7 @@ class DataLoader():
         return self
 
     def __next__(self):
-        if self.ipoint < self.min_data:
+        if self.ipoint < self.end:
             upboundary=min(self.end,self.ipoint+self.batchsize)
             index_batch=self.shuffle_list[self.ipoint:upboundary]
             coor=self.image[index_batch]

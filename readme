@@ -1,2 +1,13 @@
-This repo aims to implement equivariant MPNN using the spherical harmonic expansion based on the jax.
-In the dev branch, we exclude the dimension of batchsize and introduce the batchsize dimension by vmap.
+Equivariant MPNN
+=================================================
+**Introduction:**
+___________________________
+This repo aims to implement equivariant MPNN based on the spherical harmonic expansion using jax framework. The codes can be run on both GPU and CPU. 
+**Requirements:**
+___________________________________
+* jax+flax
+* torch 
+
+**Examples:**
+__________________________________________________
+Training can be done by executing the command "python3 $path." path" is the path where the code is saved. The command will call the "optimizer" script in the "run" folder. You can also tweak the parameters in this file to improve the training in the script. Note that the neighbor list is built by using the code placed in the "fortran" folder using Fortran implementation. Before calling the model, you need to compile the fortran code into a dynamic link library using the script "run".
